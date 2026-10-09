@@ -1,0 +1,120 @@
+﻿namespace System.Curl.Http.Interop
+{
+    /// <summary>
+    /// Информационные запросы <c>curl_easy_getinfo</c> (<c>CURLINFO</c>).
+    /// Полное соответствие <c>curl.h</c> версии 8.18.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Числовое значение = <c>тип + номер</c> (см. <see cref="CURLINFOtype"/>).
+    /// </para>
+    /// <para>
+    /// Всегда добавляйте новые значения в конец. Никогда не удаляйте существующие.
+    /// </para>
+    /// </remarks>
+    internal enum CURLINFO
+    {
+        /// <summary>Первый элемент, никогда не использовать.</summary>
+        CURLINFO_NONE = 0,
+
+        // ===== STRING =====
+
+        CURLINFO_EFFECTIVE_URL = CURLINFOtype.STRING + 1,
+        CURLINFO_CONTENT_TYPE = CURLINFOtype.STRING + 18,
+        CURLINFO_PRIVATE = CURLINFOtype.STRING + 21,
+        CURLINFO_FTP_ENTRY_PATH = CURLINFOtype.STRING + 30,
+        CURLINFO_REDIRECT_URL = CURLINFOtype.STRING + 31,
+        CURLINFO_PRIMARY_IP = CURLINFOtype.STRING + 32,
+        CURLINFO_RTSP_SESSION_ID = CURLINFOtype.STRING + 36,
+        CURLINFO_LOCAL_IP = CURLINFOtype.STRING + 41,
+        CURLINFO_SCHEME = CURLINFOtype.STRING + 49,
+        CURLINFO_EFFECTIVE_METHOD = CURLINFOtype.STRING + 58,
+        CURLINFO_REFERER = CURLINFOtype.STRING + 60,
+        CURLINFO_CAINFO = CURLINFOtype.STRING + 61,
+        CURLINFO_CAPATH = CURLINFOtype.STRING + 62,
+
+        // ===== LONG =====
+
+        CURLINFO_RESPONSE_CODE = CURLINFOtype.LONG + 2,
+        CURLINFO_HEADER_SIZE = CURLINFOtype.LONG + 11,
+        CURLINFO_REQUEST_SIZE = CURLINFOtype.LONG + 12,
+        CURLINFO_SSL_VERIFYRESULT = CURLINFOtype.LONG + 13,
+        CURLINFO_FILETIME = CURLINFOtype.LONG + 14,
+        CURLINFO_REDIRECT_COUNT = CURLINFOtype.LONG + 20,
+        CURLINFO_HTTP_CONNECTCODE = CURLINFOtype.LONG + 22,
+        CURLINFO_HTTPAUTH_AVAIL = CURLINFOtype.LONG + 23,
+        CURLINFO_PROXYAUTH_AVAIL = CURLINFOtype.LONG + 24,
+        CURLINFO_OS_ERRNO = CURLINFOtype.LONG + 25,
+        CURLINFO_NUM_CONNECTS = CURLINFOtype.LONG + 26,
+        CURLINFO_LASTSOCKET = CURLINFOtype.LONG + 29,
+        CURLINFO_CONDITION_UNMET = CURLINFOtype.LONG + 35,
+        CURLINFO_RTSP_CLIENT_CSEQ = CURLINFOtype.LONG + 37,
+        CURLINFO_RTSP_SERVER_CSEQ = CURLINFOtype.LONG + 38,
+        CURLINFO_RTSP_CSEQ_RECV = CURLINFOtype.LONG + 39,
+        CURLINFO_PRIMARY_PORT = CURLINFOtype.LONG + 40,
+        CURLINFO_LOCAL_PORT = CURLINFOtype.LONG + 42,
+        CURLINFO_HTTP_VERSION = CURLINFOtype.LONG + 46,
+        CURLINFO_PROXY_SSL_VERIFYRESULT = CURLINFOtype.LONG + 47,
+        CURLINFO_PROTOCOL = CURLINFOtype.LONG + 48,
+        CURLINFO_PROXY_ERROR = CURLINFOtype.LONG + 59,
+        CURLINFO_USED_PROXY = CURLINFOtype.LONG + 66,
+        CURLINFO_HTTPAUTH_USED = CURLINFOtype.LONG + 69,
+        CURLINFO_PROXYAUTH_USED = CURLINFOtype.LONG + 70,
+
+        // ===== DOUBLE =====
+
+        CURLINFO_TOTAL_TIME = CURLINFOtype.DOUBLE + 3,
+        CURLINFO_NAMELOOKUP_TIME = CURLINFOtype.DOUBLE + 4,
+        CURLINFO_CONNECT_TIME = CURLINFOtype.DOUBLE + 5,
+        CURLINFO_PRETRANSFER_TIME = CURLINFOtype.DOUBLE + 6,
+        CURLINFO_SIZE_UPLOAD = CURLINFOtype.DOUBLE + 7,
+        CURLINFO_SIZE_DOWNLOAD = CURLINFOtype.DOUBLE + 8,
+        CURLINFO_SPEED_DOWNLOAD = CURLINFOtype.DOUBLE + 9,
+        CURLINFO_SPEED_UPLOAD = CURLINFOtype.DOUBLE + 10,
+        CURLINFO_CONTENT_LENGTH_DOWNLOAD = CURLINFOtype.DOUBLE + 15,
+        CURLINFO_CONTENT_LENGTH_UPLOAD = CURLINFOtype.DOUBLE + 16,
+        CURLINFO_STARTTRANSFER_TIME = CURLINFOtype.DOUBLE + 17,
+        CURLINFO_REDIRECT_TIME = CURLINFOtype.DOUBLE + 19,
+        CURLINFO_APPCONNECT_TIME = CURLINFOtype.DOUBLE + 33,
+
+        // ===== PTR / SLIST =====
+
+        CURLINFO_SSL_ENGINES = CURLINFOtype.SLIST + 27,
+        CURLINFO_COOKIELIST = CURLINFOtype.SLIST + 28,
+        CURLINFO_CERTINFO = CURLINFOtype.PTR + 34,
+        CURLINFO_TLS_SESSION = CURLINFOtype.PTR + 43,
+        CURLINFO_TLS_SSL_PTR = CURLINFOtype.PTR + 45,
+
+        // ===== SOCKET =====
+
+        CURLINFO_ACTIVESOCKET = CURLINFOtype.SOCKET + 44,
+
+        // ===== OFF_T =====
+
+        CURLINFO_SIZE_UPLOAD_T = CURLINFOtype.OFF_T + 7,
+        CURLINFO_SIZE_DOWNLOAD_T = CURLINFOtype.OFF_T + 8,
+        CURLINFO_SPEED_DOWNLOAD_T = CURLINFOtype.OFF_T + 9,
+        CURLINFO_SPEED_UPLOAD_T = CURLINFOtype.OFF_T + 10,
+        CURLINFO_FILETIME_T = CURLINFOtype.OFF_T + 14,
+        CURLINFO_CONTENT_LENGTH_DOWNLOAD_T = CURLINFOtype.OFF_T + 15,
+        CURLINFO_CONTENT_LENGTH_UPLOAD_T = CURLINFOtype.OFF_T + 16,
+        CURLINFO_TOTAL_TIME_T = CURLINFOtype.OFF_T + 50,
+        CURLINFO_NAMELOOKUP_TIME_T = CURLINFOtype.OFF_T + 51,
+        CURLINFO_CONNECT_TIME_T = CURLINFOtype.OFF_T + 52,
+        CURLINFO_PRETRANSFER_TIME_T = CURLINFOtype.OFF_T + 53,
+        CURLINFO_STARTTRANSFER_TIME_T = CURLINFOtype.OFF_T + 54,
+        CURLINFO_REDIRECT_TIME_T = CURLINFOtype.OFF_T + 55,
+        CURLINFO_APPCONNECT_TIME_T = CURLINFOtype.OFF_T + 56,
+        CURLINFO_RETRY_AFTER = CURLINFOtype.OFF_T + 57,
+        CURLINFO_XFER_ID = CURLINFOtype.OFF_T + 63,
+        CURLINFO_CONN_ID = CURLINFOtype.OFF_T + 64,
+        CURLINFO_QUEUE_TIME_T = CURLINFOtype.OFF_T + 65,
+        CURLINFO_POSTTRANSFER_TIME_T = CURLINFOtype.OFF_T + 67,
+        CURLINFO_EARLYDATA_SENT_T = CURLINFOtype.OFF_T + 68,
+
+        /// <summary>
+        /// Никогда не использовать. Маркер последнего значения в <c>curl.h</c>.
+        /// </summary>
+        CURLINFO_LASTONE = CURLINFOtype.LONG + 70,
+    }
+}
