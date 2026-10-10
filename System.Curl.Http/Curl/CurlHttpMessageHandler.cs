@@ -9,6 +9,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Curl.Http.Internal;
+using System.Curl.Http.Interop;
 using System.Curl.Http;
 
 namespace System.Curl.Http.Curl
@@ -63,6 +64,92 @@ namespace System.Curl.Http.Curl
         public IWebProxy? Proxy { get; set; }
 
         /// <summary>
+        /// Список хостов, для которых прокси обходится. Через запятую.
+        /// </summary>
+        public string? NoProxyList { get; set; }
+
+        /// <summary>
+        /// Тип прокси (HTTP, HTTPS, SOCKS4, SOCKS5 и т.д.).
+        /// <see langword="null"/> — libcurl определит из схемы URL.
+        /// </summary>
+        public long? ProxyType { get; set; }
+
+        /// <summary>
+        /// Метод аутентификации на прокси (битовая маска из <see cref="CURLAUTH"/>).
+        /// <see langword="null"/> — libcurl использует значение по умолчанию.
+        /// </summary>
+        public long? ProxyAuth { get; set; }
+
+        /// <summary>
+        /// Pre-proxy (SOCKS-прокси перед HTTP-прокси).
+        /// </summary>
+        public string? PreProxy { get; set; }
+
+        /// <summary>
+        /// Версия TLS для HTTPS-прокси (см. <see cref="CURL_SSLVERSION"/>).
+        /// </summary>
+        public long? ProxySslVersion { get; set; }
+
+        /// <summary>
+        /// Проверять сертификат HTTPS-прокси. По умолчанию <see langword="true"/>.
+        /// </summary>
+        public bool ProxySslVerifyPeer { get; set; } = true;
+
+        /// <summary>
+        /// Проверять имя хоста в сертификате HTTPS-прокси. По умолчанию <see langword="true"/>.
+        /// </summary>
+        public bool ProxySslVerifyHost { get; set; } = true;
+
+        /// <summary>
+        /// Путь к CA bundle для проверки HTTPS-прокси.
+        /// </summary>
+        public string? ProxyCaBundle { get; set; }
+
+        /// <summary>
+        /// Директория с CA для проверки HTTPS-прокси.
+        /// </summary>
+        public string? ProxyCaPath { get; set; }
+
+        /// <summary>
+        /// Путь к клиентскому сертификату для mutual TLS на прокси.
+        /// </summary>
+        public string? ProxyClientCert { get; set; }
+
+        /// <summary>
+        /// Тип клиентского сертификата прокси (PEM, DER).
+        /// </summary>
+        public string? ProxyClientCertType { get; set; }
+
+        /// <summary>
+        /// Путь к приватному ключу клиентского сертификата прокси.
+        /// </summary>
+        public string? ProxyClientKey { get; set; }
+
+        /// <summary>
+        /// Тип приватного ключа прокси (PEM, DER).
+        /// </summary>
+        public string? ProxyClientKeyType { get; set; }
+
+        /// <summary>
+        /// Пароль к приватному ключу прокси.
+        /// </summary>
+        public string? ProxyKeyPassword { get; set; }
+
+        /// <summary>
+        /// Порт прокси (если не указан в URL).
+        /// </summary>
+        public long? ProxyPort { get; set; }
+
+        /// <summary>
+        /// Учётные данные для аутентификации на прокси.
+        /// </summary>
+        public ICredentials? ProxyCredentials { get; set; }
+
+        // ================================================================
+        //  Общая конфигурация
+        // ================================================================
+
+        /// <summary>
         /// Использовать учётные данные по умолчанию. Пока не поддерживается.
         /// </summary>
         public bool UseDefaultCredentials { get; set; }
@@ -92,8 +179,7 @@ namespace System.Curl.Http.Curl
         /// </summary>
         /// <remarks>
         /// <b>Пока не подключён к libcurl.</b> Свойство сохраняется для
-        /// совместимости с BCL, но фактически не вызывается. Для реальной
-        /// валидации через libcurl нужен отдельный механизм (CURLOPT_SSL_CTX_FUNCTION).
+        /// совместимости с BCL, но фактически не вызывается.
         /// </remarks>
         public Func<HttpRequestMessage, X509Certificate2?, X509Chain?, SslPolicyErrors, bool>? ServerCertificateCustomValidationCallback { get; set; }
 
@@ -122,7 +208,7 @@ namespace System.Curl.Http.Curl
                 await HttpRequestMapper.MapAsync(request, session, cancellationToken).ConfigureAwait(false);
 
                 // 2. Применение конфигурации транспорта.
-                ApplyTransportOptions(session);
+                ApplyTransportOptions(session, request.RequestUri);
 
                 // 3. Установка CA bundle из ресурсов.
                 ApplyCaBundle(session);
@@ -164,7 +250,7 @@ namespace System.Curl.Http.Curl
         //  Применение конфигурации
         // ================================================================
 
-        private void ApplyTransportOptions(CurlEasySession session)
+        private void ApplyTransportOptions(CurlEasySession session, Uri? requestUri)
         {
             session.SetFollowLocation(FollowLocation);
 
@@ -177,6 +263,147 @@ namespace System.Curl.Http.Curl
             if (!string.IsNullOrEmpty(encoding))
             {
                 session.SetAcceptEncoding(encoding!);
+            }
+
+            ApplyProxy(session, requestUri);
+        }
+
+        private void ApplyProxy(CurlEasySession session, Uri? requestUri)
+        {
+            if (!UseProxy)
+            {
+                return;
+            }
+
+            // 1. Pre-proxy (цепочка SOCKS → HTTP).
+            if (!string.IsNullOrEmpty(PreProxy))
+            {
+                session.SetPreProxy(PreProxy!);
+            }
+
+            // 2. Адрес прокси.
+            var proxyUrl = ResolveProxyUrl(requestUri);
+            if (string.IsNullOrEmpty(proxyUrl))
+            {
+                return;
+            }
+
+            session.SetProxy(proxyUrl!);
+
+            // 3. Тип прокси.
+            if (ProxyType.HasValue)
+            {
+                session.SetProxyType(ProxyType.Value);
+            }
+
+            // 4. Порт (если задан отдельно).
+            if (ProxyPort.HasValue)
+            {
+                session.SetProxyPort(ProxyPort.Value);
+            }
+
+            // 5. CONNECT-туннель для HTTPS через HTTP-прокси.
+            session.SetHttpProxyTunnel(true);
+
+            // 6. Список хостов, обходящих прокси.
+            if (!string.IsNullOrEmpty(NoProxyList))
+            {
+                session.SetNoProxy(NoProxyList!);
+            }
+
+            // 7. Учётные данные.
+            ApplyProxyCredentials(session, requestUri);
+
+            // 8. TLS-настройки HTTPS-прокси.
+            ApplyProxyTlsOptions(session);
+
+            Logger.Trace(Category, $"Прокси применён: {proxyUrl}");
+        }
+
+        private string? ResolveProxyUrl(Uri? requestUri)
+        {
+            // Явный прокси через IWebProxy.
+            if (Proxy != null && requestUri != null)
+            {
+                var proxyUri = Proxy.GetProxy(requestUri);
+                if (proxyUri != null)
+                {
+                    return proxyUri.ToString();
+                }
+            }
+
+            return null;
+        }
+
+        private void ApplyProxyCredentials(CurlEasySession session, Uri? requestUri)
+        {
+            if (ProxyCredentials == null || requestUri == null)
+            {
+                return;
+            }
+
+            var networkCredential = ProxyCredentials.GetCredential(requestUri, "Basic");
+            if (networkCredential == null)
+            {
+                return;
+            }
+
+            var user = networkCredential.UserName ?? string.Empty;
+            var password = networkCredential.Password ?? string.Empty;
+            session.SetProxyCredentials($"{user}:{password}");
+
+            // Метод аутентификации.
+            var authMask = ProxyAuth ?? CURLAUTH.ANY;
+            session.SetProxyAuth(authMask);
+        }
+
+        private void ApplyProxyTlsOptions(CurlEasySession session)
+        {
+            // TLS-версия.
+            if (ProxySslVersion.HasValue)
+            {
+                session.SetProxySslVersion(ProxySslVersion.Value);
+            }
+
+            // Проверка сертификата.
+            session.SetProxySslVerifyPeer(ProxySslVerifyPeer);
+            session.SetProxySslVerifyHost(ProxySslVerifyHost);
+
+            // CA bundle.
+            if (!string.IsNullOrEmpty(ProxyCaBundle))
+            {
+                session.SetProxyCaBundle(ProxyCaBundle!);
+            }
+
+            if (!string.IsNullOrEmpty(ProxyCaPath))
+            {
+                session.SetProxyCaPath(ProxyCaPath!);
+            }
+
+            // Клиентский сертификат.
+            if (!string.IsNullOrEmpty(ProxyClientCert))
+            {
+                session.SetProxySslCert(ProxyClientCert!);
+
+                if (!string.IsNullOrEmpty(ProxyClientCertType))
+                {
+                    session.SetProxySslCertType(ProxyClientCertType!);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(ProxyClientKey))
+            {
+                session.SetProxySslKey(ProxyClientKey!);
+
+                if (!string.IsNullOrEmpty(ProxyClientKeyType))
+                {
+                    session.SetProxySslKeyType(ProxyClientKeyType!);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(ProxyKeyPassword))
+            {
+                session.SetProxyKeyPassword(ProxyKeyPassword!);
             }
         }
 
@@ -197,7 +424,6 @@ namespace System.Curl.Http.Curl
         {
             if (methods == DecompressionMethods.None)
             {
-                // Пустая строка означает «не запрашивать сжатие».
                 return string.Empty;
             }
 
@@ -233,7 +459,6 @@ namespace System.Curl.Http.Curl
                 Version = ParseHttpVersion(parsed.HttpVersion),
             };
 
-            // Заголовки.
             foreach (var header in parsed.Headers)
             {
                 foreach (var value in header.Value)
@@ -242,15 +467,12 @@ namespace System.Curl.Http.Curl
                 }
             }
 
-            // Тело.
             if (parsed.Body.Length > 0)
             {
                 var content = new ByteArrayContent(parsed.Body);
 
-                // Переносим Content-* заголовки из ответа в тело.
                 MoveContentHeaders(response.Headers, content.Headers);
 
-                // Если Content-Type не был установлен, но тело есть — считаем, что это бинарь.
                 if (content.Headers.ContentType == null)
                 {
                     content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
@@ -264,7 +486,6 @@ namespace System.Curl.Http.Curl
 
         private static void MoveContentHeaders(HttpResponseHeaders source, HttpContentHeaders target)
         {
-            // Заголовки, которые относятся к телу, а не к ответу.
             var contentHeaderNames = new[]
             {
                 "Content-Type",
@@ -322,10 +543,6 @@ namespace System.Curl.Http.Curl
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
-            // Ресурсов, требующих освобождения, нет: сессия и парсер
-            // освобождаются через using в SendAsync.
-            // Базовая реализация установит флаг _disposed и защитит
-            // от повторного вызова.
             base.Dispose(disposing);
         }
     }

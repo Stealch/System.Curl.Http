@@ -332,6 +332,330 @@ namespace System.Curl.Http.Curl
                 "DisableTransferDecoding");
         }
 
+        /// <summary>
+        /// Устанавливает адрес прокси-сервера.
+        /// </summary>
+        /// <param name="proxyUrl">
+        /// URL прокси в формате libcurl: <c>http://host:port</c>,
+        /// <c>https://host:port</c>, <c>socks4://host:port</c>,
+        /// <c>socks5://host:port</c>, <c>socks5h://host:port</c>.
+        /// Может содержать учётные данные: <c>http://user:pass@host:port</c>.
+        /// </param>
+        public void SetProxy(string proxyUrl)
+        {
+            ThrowIfDisposed();
+
+            if (string.IsNullOrWhiteSpace(proxyUrl))
+            {
+                throw new ArgumentException("URL прокси не может быть пустым.", nameof(proxyUrl));
+            }
+
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY, proxyUrl),
+                "SetProxy");
+        }
+
+        /// <summary>
+        /// Включает или отключает туннелирование через HTTP-прокси
+        /// (<c>CONNECT</c>). Обязательно для HTTPS-запросов через HTTP-прокси.
+        /// </summary>
+        public void SetHttpProxyTunnel(bool tunnel)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_HTTPPROXYTUNNEL, tunnel ? 1L : 0L),
+                "SetHttpProxyTunnel");
+        }
+
+        /// <summary>
+        /// Устанавливает тип прокси (HTTP, HTTPS, SOCKS4, SOCKS5, SOCKS5H).
+        /// Обычно не требуется: libcurl определяет тип из схемы URL прокси.
+        /// </summary>
+        public void SetProxyType(long proxyType)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXYTYPE, proxyType),
+                "SetProxyType");
+        }
+
+        /// <summary>
+        /// Устанавливает учётные данные для аутентификации на прокси.
+        /// </summary>
+        /// <param name="credentials">Строка в формате <c>user:password</c>.</param>
+        public void SetProxyCredentials(string credentials)
+        {
+            ThrowIfDisposed();
+
+            if (string.IsNullOrEmpty(credentials))
+            {
+                throw new ArgumentException("Учётные данные прокси не могут быть пустыми.", nameof(credentials));
+            }
+
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXYUSERPWD, credentials),
+                "SetProxyCredentials");
+        }
+
+        // ================================================================
+        //  Прокси: расширенные настройки
+        // ================================================================
+
+        /// <summary>
+        /// Устанавливает метод аутентификации на прокси.
+        /// </summary>
+        /// <param name="authMask">Битовая маска из <see cref="CURLAUTH"/>.</param>
+        public void SetProxyAuth(long authMask)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXYAUTH, authMask),
+                "SetProxyAuth");
+        }
+
+        /// <summary>
+        /// Устанавливает метод аутентификации для SOCKS5.
+        /// </summary>
+        public void SetSocks5Auth(long authMask)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_SOCKS5_AUTH, authMask),
+                "SetSocks5Auth");
+        }
+
+        /// <summary>
+        /// Устанавливает список хостов, для которых прокси обходится.
+        /// </summary>
+        /// <param name="noProxyList">
+        /// Список через запятую. Поддерживает <c>*</c> (всё) и CIDR (с 7.86.0).
+        /// </param>
+        public void SetNoProxy(string noProxyList)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_NOPROXY, noProxyList),
+                "SetNoProxy");
+        }
+
+        /// <summary>
+        /// Устанавливает заголовки, отправляемые только прокси.
+        /// </summary>
+        /// <param name="headersList">Список <c>curl_slist</c>.</param>
+        public void SetProxyHeaders(IntPtr headersList)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXYHEADER, headersList),
+                "SetProxyHeaders");
+        }
+
+        /// <summary>
+        /// Устанавливает порт прокси (устаревший способ, обычно порт в URL).
+        /// </summary>
+        public void SetProxyPort(long port)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXYPORT, port),
+                "SetProxyPort");
+        }
+
+        /// <summary>
+        /// Устанавливает pre-proxy (SOCKS-прокси перед HTTP-прокси).
+        /// </summary>
+        public void SetPreProxy(string preProxyUrl)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PRE_PROXY, preProxyUrl),
+                "SetPreProxy");
+        }
+
+        // ================================================================
+        //  Прокси: TLS
+        // ================================================================
+
+        /// <summary>
+        /// Проверка сертификата HTTPS-прокси.
+        /// </summary>
+        public void SetProxySslVerifyPeer(bool verify)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_SSL_VERIFYPEER, verify ? 1L : 0L),
+                "SetProxySslVerifyPeer");
+        }
+
+        /// <summary>
+        /// Проверка имени хоста в сертификате HTTPS-прокси.
+        /// </summary>
+        public void SetProxySslVerifyHost(bool verify)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_SSL_VERIFYHOST, verify ? 2L : 0L),
+                "SetProxySslVerifyHost");
+        }
+
+        /// <summary>
+        /// Устанавливает CA bundle для проверки HTTPS-прокси.
+        /// </summary>
+        public void SetProxyCaBundle(string caBundlePath)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_CAINFO, caBundlePath),
+                "SetProxyCaBundle");
+        }
+
+        /// <summary>
+        /// Устанавливает директорию с CA для проверки HTTPS-прокси.
+        /// </summary>
+        public void SetProxyCaPath(string caPath)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_CAPATH, caPath),
+                "SetProxyCaPath");
+        }
+
+        /// <summary>
+        /// Устанавливает минимальную версию TLS для HTTPS-прокси.
+        /// </summary>
+        public void SetProxySslVersion(long sslVersion)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_SSLVERSION, sslVersion),
+                "SetProxySslVersion");
+        }
+
+        /// <summary>
+        /// Устанавливает список шифров TLS 1.2 и ниже для HTTPS-прокси.
+        /// </summary>
+        public void SetProxySslCipherList(string cipherList)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_SSL_CIPHER_LIST, cipherList),
+                "SetProxySslCipherList");
+        }
+
+        /// <summary>
+        /// Устанавливает список шифров TLS 1.3 для HTTPS-прокси.
+        /// </summary>
+        public void SetProxyTls13Ciphers(string ciphers)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_TLS13_CIPHERS, ciphers),
+                "SetProxyTls13Ciphers");
+        }
+
+        /// <summary>
+        /// Устанавливает флаги SSL для прокси (см. <see cref="CURLSSLOPT"/>).
+        /// </summary>
+        public void SetProxySslOptions(long sslOptions)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_SSL_OPTIONS, sslOptions),
+                "SetProxySslOptions");
+        }
+
+        // ================================================================
+        //  Прокси: клиентские сертификаты
+        // ================================================================
+
+        /// <summary>
+        /// Устанавливает путь к клиентскому сертификату для mutual TLS на прокси.
+        /// </summary>
+        public void SetProxySslCert(string certPath)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_SSLCERT, certPath),
+                "SetProxySslCert");
+        }
+
+        /// <summary>
+        /// Устанавливает тип клиентского сертификата прокси (PEM, DER, ENG).
+        /// </summary>
+        public void SetProxySslCertType(string certType)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_SSLCERTTYPE, certType),
+                "SetProxySslCertType");
+        }
+
+        /// <summary>
+        /// Устанавливает путь к приватному ключу клиентского сертификата прокси.
+        /// </summary>
+        public void SetProxySslKey(string keyPath)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_SSLKEY, keyPath),
+                "SetProxySslKey");
+        }
+
+        /// <summary>
+        /// Устанавливает тип приватного ключа прокси (PEM, DER, ENG).
+        /// </summary>
+        public void SetProxySslKeyType(string keyType)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_SSLKEYTYPE, keyType),
+                "SetProxySslKeyType");
+        }
+
+        /// <summary>
+        /// Устанавливает пароль к приватному ключу прокси.
+        /// </summary>
+        public void SetProxyKeyPassword(string password)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_KEYPASSWD, password),
+                "SetProxyKeyPassword");
+        }
+
+        /// <summary>
+        /// Устанавливает issuer-сертификат для проверки прокси.
+        /// </summary>
+        public void SetProxyIssuerCert(string issuerCertPath)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_ISSUERCERT, issuerCertPath),
+                "SetProxyIssuerCert");
+        }
+
+        /// <summary>
+        /// Устанавливает CRL-файл для проверки прокси.
+        /// </summary>
+        public void SetProxyCrlFile(string crlPath)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_CRLFILE, crlPath),
+                "SetProxyCrlFile");
+        }
+
+        /// <summary>
+        /// Устанавливает pinned public key для проверки прокси.
+        /// </summary>
+        public void SetProxyPinnedPublicKey(string publicKey)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_PINNEDPUBLICKEY, publicKey),
+                "SetProxyPinnedPublicKey");
+        }
+
         // ================================================================
         //  Callback'и
         // ================================================================

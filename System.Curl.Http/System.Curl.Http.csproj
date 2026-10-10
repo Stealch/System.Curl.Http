@@ -79,12 +79,16 @@
     <Compile Include="Internal\GCHandleScope.cs" />
     <Compile Include="Internal\Logger.cs" />
     <Compile Include="Internal\LogLevel.cs" />
+    <Compile Include="Interop\CURLAUTH.cs" />
     <Compile Include="Interop\CURLcode.cs" />
     <Compile Include="Interop\CURLINFO.cs" />
     <Compile Include="Interop\CURLINFOtype.cs" />
     <Compile Include="Interop\CURLMcode.cs" />
     <Compile Include="Interop\CURLoption.cs" />
     <Compile Include="Interop\CURLOPTTYPE.cs" />
+    <Compile Include="Interop\CURLPROXY.cs" />
+    <Compile Include="Interop\CURLPROXY_SSL_OPTIONS.cs" />
+    <Compile Include="Interop\CURL_SSLVERSION.cs" />
     <Compile Include="Interop\Delegates.cs" />
     <Compile Include="Interop\NativeFunctions.cs" />
     <Compile Include="Interop\NativeMethods.cs" />
