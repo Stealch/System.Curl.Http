@@ -154,7 +154,6 @@ namespace System.Curl.Http
         private const int DefaultBoundaryLength = 32;
 
         private readonly List<HttpContent> _parts = new List<HttpContent>();
-        private readonly string _boundary;
         private readonly string _subtype;
 
         /// <summary>
@@ -181,7 +180,7 @@ namespace System.Curl.Http
             }
 
             _subtype = subtype;
-            _boundary = boundary;
+            Boundary = boundary;
 
             var contentType = new MediaTypeHeaderValue("multipart/" + subtype)
             {
@@ -194,7 +193,7 @@ namespace System.Curl.Http
         /// <summary>
         /// Граница между частями.
         /// </summary>
-        public string Boundary => _boundary;
+        public string Boundary { get; }
 
         /// <summary>
         /// Добавляет часть в тело.
@@ -223,7 +222,7 @@ namespace System.Curl.Http
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            var boundaryBytes = Encoding.ASCII.GetBytes("--" + _boundary + "\r\n");
+            var boundaryBytes = Encoding.ASCII.GetBytes("--" + Boundary + "\r\n");
 
             foreach (var part in _parts)
             {
@@ -248,7 +247,7 @@ namespace System.Curl.Http
             }
 
             // Финальная граница: --boundary--\r\n
-            var closingBoundary = Encoding.ASCII.GetBytes("--" + _boundary + "--\r\n");
+            var closingBoundary = Encoding.ASCII.GetBytes("--" + Boundary + "--\r\n");
             await stream.WriteAsync(closingBoundary, 0, closingBoundary.Length, cancellationToken).ConfigureAwait(false);
         }
 
@@ -258,8 +257,8 @@ namespace System.Curl.Http
             // Попробуем посчитать точную длину, если все части знают свою.
             length = 0;
 
-            var boundaryLength = Encoding.ASCII.GetByteCount("--" + _boundary + "\r\n");
-            var closingLength = Encoding.ASCII.GetByteCount("--" + _boundary + "--\r\n");
+            var boundaryLength = Encoding.ASCII.GetByteCount("--" + Boundary + "\r\n");
+            var closingLength = Encoding.ASCII.GetByteCount("--" + Boundary + "--\r\n");
 
             long total = 0;
 

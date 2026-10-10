@@ -53,44 +53,27 @@ namespace System.Curl.Http
         private const string ViaName = "Via";
         private const string WarningName = "Warning";
 
-        private readonly HttpHeaderValueCollection<MediaTypeWithQualityHeaderValue> _accept;
-        private readonly HttpHeaderValueCollection<StringWithQualityHeaderValue> _acceptCharset;
-        private readonly HttpHeaderValueCollection<StringWithQualityHeaderValue> _acceptEncoding;
-        private readonly HttpHeaderValueCollection<StringWithQualityHeaderValue> _acceptLanguage;
-        private readonly HttpHeaderValueCollection<string> _connection;
-        private readonly HttpHeaderValueCollection<string> _expect;
-        private readonly HttpHeaderValueCollection<EntityTagHeaderValue> _ifMatch;
-        private readonly HttpHeaderValueCollection<EntityTagHeaderValue> _ifNoneMatch;
-        private readonly HttpHeaderValueCollection<NameValueHeaderValue> _pragma;
-        private readonly HttpHeaderValueCollection<TransferCodingWithQualityHeaderValue> _te;
-        private readonly HttpHeaderValueCollection<string> _trailer;
-        private readonly HttpHeaderValueCollection<TransferCodingHeaderValue> _transferEncoding;
-        private readonly HttpHeaderValueCollection<ProductHeaderValue> _upgrade;
-        private readonly HttpHeaderValueCollection<ProductInfoHeaderValue> _userAgent;
-        private readonly HttpHeaderValueCollection<ViaHeaderValue> _via;
-        private readonly HttpHeaderValueCollection<WarningHeaderValue> _warning;
-
         /// <summary>
         /// Создаёт пустую коллекцию заголовков запроса.
         /// </summary>
         public HttpRequestHeaders()
         {
-            _accept = new HttpHeaderValueCollection<MediaTypeWithQualityHeaderValue>(this, AcceptName);
-            _acceptCharset = new HttpHeaderValueCollection<StringWithQualityHeaderValue>(this, AcceptCharsetName);
-            _acceptEncoding = new HttpHeaderValueCollection<StringWithQualityHeaderValue>(this, AcceptEncodingName);
-            _acceptLanguage = new HttpHeaderValueCollection<StringWithQualityHeaderValue>(this, AcceptLanguageName);
-            _connection = new HttpHeaderValueCollection<string>(this, ConnectionName);
-            _expect = new HttpHeaderValueCollection<string>(this, ExpectName);
-            _ifMatch = new HttpHeaderValueCollection<EntityTagHeaderValue>(this, IfMatchName);
-            _ifNoneMatch = new HttpHeaderValueCollection<EntityTagHeaderValue>(this, IfNoneMatchName);
-            _pragma = new HttpHeaderValueCollection<NameValueHeaderValue>(this, PragmaName);
-            _te = new HttpHeaderValueCollection<TransferCodingWithQualityHeaderValue>(this, TEName);
-            _trailer = new HttpHeaderValueCollection<string>(this, TrailerName);
-            _transferEncoding = new HttpHeaderValueCollection<TransferCodingHeaderValue>(this, TransferEncodingName);
-            _upgrade = new HttpHeaderValueCollection<ProductHeaderValue>(this, UpgradeName);
-            _userAgent = new HttpHeaderValueCollection<ProductInfoHeaderValue>(this, UserAgentName);
-            _via = new HttpHeaderValueCollection<ViaHeaderValue>(this, ViaName);
-            _warning = new HttpHeaderValueCollection<WarningHeaderValue>(this, WarningName);
+            Accept = new HttpHeaderValueCollection<MediaTypeWithQualityHeaderValue>(this, AcceptName);
+            AcceptCharset = new HttpHeaderValueCollection<StringWithQualityHeaderValue>(this, AcceptCharsetName);
+            AcceptEncoding = new HttpHeaderValueCollection<StringWithQualityHeaderValue>(this, AcceptEncodingName);
+            AcceptLanguage = new HttpHeaderValueCollection<StringWithQualityHeaderValue>(this, AcceptLanguageName);
+            Connection = new HttpHeaderValueCollection<string>(this, ConnectionName);
+            Expect = new HttpHeaderValueCollection<string>(this, ExpectName);
+            IfMatch = new HttpHeaderValueCollection<EntityTagHeaderValue>(this, IfMatchName);
+            IfNoneMatch = new HttpHeaderValueCollection<EntityTagHeaderValue>(this, IfNoneMatchName);
+            Pragma = new HttpHeaderValueCollection<NameValueHeaderValue>(this, PragmaName);
+            TE = new HttpHeaderValueCollection<TransferCodingWithQualityHeaderValue>(this, TEName);
+            Trailer = new HttpHeaderValueCollection<string>(this, TrailerName);
+            TransferEncoding = new HttpHeaderValueCollection<TransferCodingHeaderValue>(this, TransferEncodingName);
+            Upgrade = new HttpHeaderValueCollection<ProductHeaderValue>(this, UpgradeName);
+            UserAgent = new HttpHeaderValueCollection<ProductInfoHeaderValue>(this, UserAgentName);
+            Via = new HttpHeaderValueCollection<ViaHeaderValue>(this, ViaName);
+            Warning = new HttpHeaderValueCollection<WarningHeaderValue>(this, WarningName);
         }
 
         // ================================================================
@@ -98,52 +81,52 @@ namespace System.Curl.Http
         // ================================================================
 
         /// <summary>Accept.</summary>
-        public HttpHeaderValueCollection<MediaTypeWithQualityHeaderValue> Accept => _accept;
+        public HttpHeaderValueCollection<MediaTypeWithQualityHeaderValue> Accept { get; }
 
         /// <summary>Accept-Charset.</summary>
-        public HttpHeaderValueCollection<StringWithQualityHeaderValue> AcceptCharset => _acceptCharset;
+        public HttpHeaderValueCollection<StringWithQualityHeaderValue> AcceptCharset { get; }
 
         /// <summary>Accept-Encoding.</summary>
-        public HttpHeaderValueCollection<StringWithQualityHeaderValue> AcceptEncoding => _acceptEncoding;
+        public HttpHeaderValueCollection<StringWithQualityHeaderValue> AcceptEncoding { get; }
 
         /// <summary>Accept-Language.</summary>
-        public HttpHeaderValueCollection<StringWithQualityHeaderValue> AcceptLanguage => _acceptLanguage;
+        public HttpHeaderValueCollection<StringWithQualityHeaderValue> AcceptLanguage { get; }
 
         /// <summary>Connection.</summary>
-        public HttpHeaderValueCollection<string> Connection => _connection;
+        public HttpHeaderValueCollection<string> Connection { get; }
 
         /// <summary>Expect.</summary>
-        public HttpHeaderValueCollection<string> Expect => _expect;
+        public HttpHeaderValueCollection<string> Expect { get; }
 
         /// <summary>If-Match.</summary>
-        public HttpHeaderValueCollection<EntityTagHeaderValue> IfMatch => _ifMatch;
+        public HttpHeaderValueCollection<EntityTagHeaderValue> IfMatch { get; }
 
         /// <summary>If-None-Match.</summary>
-        public HttpHeaderValueCollection<EntityTagHeaderValue> IfNoneMatch => _ifNoneMatch;
+        public HttpHeaderValueCollection<EntityTagHeaderValue> IfNoneMatch { get; }
 
         /// <summary>Pragma.</summary>
-        public HttpHeaderValueCollection<NameValueHeaderValue> Pragma => _pragma;
+        public HttpHeaderValueCollection<NameValueHeaderValue> Pragma { get; }
 
         /// <summary>TE.</summary>
-        public HttpHeaderValueCollection<TransferCodingWithQualityHeaderValue> TE => _te;
+        public HttpHeaderValueCollection<TransferCodingWithQualityHeaderValue> TE { get; }
 
         /// <summary>Trailer.</summary>
-        public HttpHeaderValueCollection<string> Trailer => _trailer;
+        public HttpHeaderValueCollection<string> Trailer { get; }
 
         /// <summary>Transfer-Encoding.</summary>
-        public HttpHeaderValueCollection<TransferCodingHeaderValue> TransferEncoding => _transferEncoding;
+        public HttpHeaderValueCollection<TransferCodingHeaderValue> TransferEncoding { get; }
 
         /// <summary>Upgrade.</summary>
-        public HttpHeaderValueCollection<ProductHeaderValue> Upgrade => _upgrade;
+        public HttpHeaderValueCollection<ProductHeaderValue> Upgrade { get; }
 
         /// <summary>User-Agent.</summary>
-        public HttpHeaderValueCollection<ProductInfoHeaderValue> UserAgent => _userAgent;
+        public HttpHeaderValueCollection<ProductInfoHeaderValue> UserAgent { get; }
 
         /// <summary>Via.</summary>
-        public HttpHeaderValueCollection<ViaHeaderValue> Via => _via;
+        public HttpHeaderValueCollection<ViaHeaderValue> Via { get; }
 
         /// <summary>Warning.</summary>
-        public HttpHeaderValueCollection<WarningHeaderValue> Warning => _warning;
+        public HttpHeaderValueCollection<WarningHeaderValue> Warning { get; }
 
         // ================================================================
         //  Одиночные значения (типизированные свойства)

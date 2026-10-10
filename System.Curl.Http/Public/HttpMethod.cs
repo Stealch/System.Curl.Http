@@ -20,8 +20,6 @@ namespace System.Curl.Http
     /// </remarks>
     public class HttpMethod : IEquatable<HttpMethod>
     {
-        private readonly string _method;
-
         /// <summary>
         /// Создаёт HTTP-метод из строки.
         /// </summary>
@@ -41,13 +39,13 @@ namespace System.Curl.Http
                 throw new ArgumentException("Имя HTTP-метода не может быть пустым.", nameof(method));
             }
 
-            _method = method;
+            Method = method;
         }
 
         /// <summary>
         /// Строковое значение метода.
         /// </summary>
-        public string Method => _method;
+        public string Method { get; }
 
         // ================================================================
         //  Предопределённые методы
@@ -97,7 +95,7 @@ namespace System.Curl.Http
                 return true;
             }
 
-            return string.Equals(_method, other._method, StringComparison.Ordinal);
+            return string.Equals(Method, other.Method, StringComparison.Ordinal);
         }
 
         /// <inheritdoc />
@@ -109,13 +107,13 @@ namespace System.Curl.Http
         /// <inheritdoc />
         public override int GetHashCode()
         {
-            return StringComparer.Ordinal.GetHashCode(_method);
+            return StringComparer.Ordinal.GetHashCode(Method);
         }
 
         /// <inheritdoc />
         public override string ToString()
         {
-            return _method;
+            return Method;
         }
 
         /// <summary>

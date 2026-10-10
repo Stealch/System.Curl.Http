@@ -70,32 +70,28 @@ namespace System.Curl.Http.Curl
 
         private readonly MemoryStream _bodyStream = new MemoryStream();
         private readonly StringBuilder _headerLine = new StringBuilder(256);
-        private readonly ParsedHttpResponse _response = new ParsedHttpResponse();
 
         private GCHandleScope _writeCallbackHandle;
         private GCHandleScope _headerCallbackHandle;
         private GCHandleScope _selfHandle;
-
-        private readonly Delegates.curl_write_callback _writeCallback;
-        private readonly Delegates.curl_header_callback _headerCallback;
 
         private bool _headersComplete;
         private bool _disposed;
 
         public HttpResponseParser()
         {
-            _writeCallback = OnWriteData;
-            _headerCallback = OnHeaderData;
+            WriteCallback = OnWriteData;
+            HeaderCallback = OnHeaderData;
 
-            _writeCallbackHandle = GCHandleScope.Alloc(_writeCallback);
-            _headerCallbackHandle = GCHandleScope.Alloc(_headerCallback);
+            _writeCallbackHandle = GCHandleScope.Alloc(WriteCallback);
+            _headerCallbackHandle = GCHandleScope.Alloc(HeaderCallback);
             _selfHandle = GCHandleScope.Alloc(this);
         }
 
         /// <summary>
         /// Промежуточный результат парсинга. Заполняется по мере поступления данных.
         /// </summary>
-        public ParsedHttpResponse Response => _response;
+        public ParsedHttpResponse Response { get; } = new ParsedHttpResponse();
 
         /// <summary>
         /// Пользовательский указатель для <c>CURLOPT_WRITEDATA</c>.
@@ -110,12 +106,12 @@ namespace System.Curl.Http.Curl
         /// <summary>
         /// Callback для <c>CURLOPT_WRITEFUNCTION</c>.
         /// </summary>
-        public Delegates.curl_write_callback WriteCallback => _writeCallback;
+        public Delegates.curl_write_callback WriteCallback { get; }
 
         /// <summary>
         /// Callback для <c>CURLOPT_HEADERFUNCTION</c>.
         /// </summary>
-        public Delegates.curl_header_callback HeaderCallback => _headerCallback;
+        public Delegates.curl_header_callback HeaderCallback { get; }
 
         /// <summary>
         /// Финализирует парсинг: определяет кодировку тела по <c>Content-Type</c>
@@ -125,15 +121,15 @@ namespace System.Curl.Http.Curl
         {
             ThrowIfDisposed();
 
-            _response.Body = _bodyStream.ToArray();
-            _response.BodyEncoding = DetectEncoding(_response.Headers);
+            Response.Body = _bodyStream.ToArray();
+            Response.BodyEncoding = DetectEncoding(Response.Headers);
 
             Logger.Trace(Category,
-                $"Завершено: status={_response.StatusCode}, " +
-                $"headers={_response.Headers.Count}, " +
-                $"body={_response.Body.Length} байт.");
+                $"Завершено: status={Response.StatusCode}, " +
+                $"headers={Response.Headers.Count}, " +
+                $"body={Response.Body.Length} байт.");
 
-            return _response;
+            return Response;
         }
 
         // ================================================================
@@ -239,17 +235,17 @@ namespace System.Curl.Http.Curl
             {
                 // Пустая строка — конец блока заголовков.
                 // Если статус 1xx — это промежуточный ответ, продолжаем ждать финальный.
-                if (_response.StatusCode >= 100 && _response.StatusCode < 200)
+                if (Response.StatusCode >= 100 && Response.StatusCode < 200)
                 {
-                    Logger.Trace(Category, $"Промежуточный ответ {_response.StatusCode}, ожидаем финальный.");
-                    _response.Headers.Clear();
-                    _response.StatusCode = 0;
-                    _response.ReasonPhrase = null;
+                    Logger.Trace(Category, $"Промежуточный ответ {Response.StatusCode}, ожидаем финальный.");
+                    Response.Headers.Clear();
+                    Response.StatusCode = 0;
+                    Response.ReasonPhrase = null;
                     return;
                 }
 
                 _headersComplete = true;
-                Logger.Trace(Category, $"Заголовки получены: status={_response.StatusCode}, count={_response.Headers.Count}.");
+                Logger.Trace(Category, $"Заголовки получены: status={Response.StatusCode}, count={Response.Headers.Count}.");
                 return;
             }
 
@@ -265,9 +261,9 @@ namespace System.Curl.Http.Curl
 
         private void StartNewResponse()
         {
-            _response.StatusCode = 0;
-            _response.ReasonPhrase = null;
-            _response.Headers.Clear();
+            Response.StatusCode = 0;
+            Response.ReasonPhrase = null;
+            Response.Headers.Clear();
             _headersComplete = false;
         }
 
@@ -305,11 +301,11 @@ namespace System.Curl.Http.Curl
                 return;
             }
 
-            _response.HttpVersion = version.StartsWith("HTTP/", StringComparison.Ordinal)
+            Response.HttpVersion = version.StartsWith("HTTP/", StringComparison.Ordinal)
                 ? version.Substring(5)
                 : version;
-            _response.StatusCode = code;
-            _response.ReasonPhrase = string.IsNullOrEmpty(reason) ? null : reason;
+            Response.StatusCode = code;
+            Response.ReasonPhrase = string.IsNullOrEmpty(reason) ? null : reason;
         }
 
         private void ParseHeaderLine(string line)
@@ -329,10 +325,10 @@ namespace System.Curl.Http.Curl
                 return;
             }
 
-            if (!_response.Headers.TryGetValue(name, out var values))
+            if (!Response.Headers.TryGetValue(name, out var values))
             {
                 values = new List<string>(1);
-                _response.Headers[name] = values;
+                Response.Headers[name] = values;
             }
 
             values.Add(value);

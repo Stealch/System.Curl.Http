@@ -33,18 +33,14 @@ namespace System.Curl.Http
         private const string ExpiresName = "Expires";
         private const string LastModifiedName = "Last-Modified";
 
-        private readonly HttpHeaderValueCollection<string> _allow;
-        private readonly HttpHeaderValueCollection<string> _contentEncoding;
-        private readonly HttpHeaderValueCollection<string> _contentLanguage;
-
         /// <summary>
         /// Создаёт пустую коллекцию заголовков тела.
         /// </summary>
         public HttpContentHeaders()
         {
-            _allow = new HttpHeaderValueCollection<string>(this, AllowName);
-            _contentEncoding = new HttpHeaderValueCollection<string>(this, ContentEncodingName);
-            _contentLanguage = new HttpHeaderValueCollection<string>(this, ContentLanguageName);
+            Allow = new HttpHeaderValueCollection<string>(this, AllowName);
+            ContentEncoding = new HttpHeaderValueCollection<string>(this, ContentEncodingName);
+            ContentLanguage = new HttpHeaderValueCollection<string>(this, ContentLanguageName);
         }
 
         // ================================================================
@@ -52,13 +48,13 @@ namespace System.Curl.Http
         // ================================================================
 
         /// <summary>Allow.</summary>
-        public HttpHeaderValueCollection<string> Allow => _allow;
+        public HttpHeaderValueCollection<string> Allow { get; }
 
         /// <summary>Content-Encoding.</summary>
-        public HttpHeaderValueCollection<string> ContentEncoding => _contentEncoding;
+        public HttpHeaderValueCollection<string> ContentEncoding { get; }
 
         /// <summary>Content-Language.</summary>
-        public HttpHeaderValueCollection<string> ContentLanguage => _contentLanguage;
+        public HttpHeaderValueCollection<string> ContentLanguage { get; }
 
         // ================================================================
         //  Одиночные значения (типизированные свойства)

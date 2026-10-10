@@ -151,8 +151,7 @@ namespace System.Curl.Http
                 return response;
             }
             catch (OperationCanceledException) when (
-                timeoutCts != null &&
-                timeoutCts.IsCancellationRequested &&
+                timeoutCts?.IsCancellationRequested == true &&
                 !cancellationToken.IsCancellationRequested)
             {
                 // Отмена по таймауту, а не пользователем.

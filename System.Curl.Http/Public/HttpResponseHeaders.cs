@@ -40,34 +40,22 @@ namespace System.Curl.Http
         private const string WarningName = "Warning";
         private const string WwwAuthenticateName = "WWW-Authenticate";
 
-        private readonly HttpHeaderValueCollection<string> _connection;
-        private readonly HttpHeaderValueCollection<NameValueHeaderValue> _pragma;
-        private readonly HttpHeaderValueCollection<AuthenticationHeaderValue> _proxyAuthenticate;
-        private readonly HttpHeaderValueCollection<ProductInfoHeaderValue> _server;
-        private readonly HttpHeaderValueCollection<string> _trailer;
-        private readonly HttpHeaderValueCollection<TransferCodingHeaderValue> _transferEncoding;
-        private readonly HttpHeaderValueCollection<ProductHeaderValue> _upgrade;
-        private readonly HttpHeaderValueCollection<string> _vary;
-        private readonly HttpHeaderValueCollection<ViaHeaderValue> _via;
-        private readonly HttpHeaderValueCollection<WarningHeaderValue> _warning;
-        private readonly HttpHeaderValueCollection<AuthenticationHeaderValue> _wwwAuthenticate;
-
         /// <summary>
         /// Создаёт пустую коллекцию заголовков ответа.
         /// </summary>
         public HttpResponseHeaders()
         {
-            _connection = new HttpHeaderValueCollection<string>(this, ConnectionName);
-            _pragma = new HttpHeaderValueCollection<NameValueHeaderValue>(this, PragmaName);
-            _proxyAuthenticate = new HttpHeaderValueCollection<AuthenticationHeaderValue>(this, ProxyAuthenticateName);
-            _server = new HttpHeaderValueCollection<ProductInfoHeaderValue>(this, ServerName);
-            _trailer = new HttpHeaderValueCollection<string>(this, TrailerName);
-            _transferEncoding = new HttpHeaderValueCollection<TransferCodingHeaderValue>(this, TransferEncodingName);
-            _upgrade = new HttpHeaderValueCollection<ProductHeaderValue>(this, UpgradeName);
-            _vary = new HttpHeaderValueCollection<string>(this, VaryName);
-            _via = new HttpHeaderValueCollection<ViaHeaderValue>(this, ViaName);
-            _warning = new HttpHeaderValueCollection<WarningHeaderValue>(this, WarningName);
-            _wwwAuthenticate = new HttpHeaderValueCollection<AuthenticationHeaderValue>(this, WwwAuthenticateName);
+            Connection = new HttpHeaderValueCollection<string>(this, ConnectionName);
+            Pragma = new HttpHeaderValueCollection<NameValueHeaderValue>(this, PragmaName);
+            ProxyAuthenticate = new HttpHeaderValueCollection<AuthenticationHeaderValue>(this, ProxyAuthenticateName);
+            Server = new HttpHeaderValueCollection<ProductInfoHeaderValue>(this, ServerName);
+            Trailer = new HttpHeaderValueCollection<string>(this, TrailerName);
+            TransferEncoding = new HttpHeaderValueCollection<TransferCodingHeaderValue>(this, TransferEncodingName);
+            Upgrade = new HttpHeaderValueCollection<ProductHeaderValue>(this, UpgradeName);
+            Vary = new HttpHeaderValueCollection<string>(this, VaryName);
+            Via = new HttpHeaderValueCollection<ViaHeaderValue>(this, ViaName);
+            Warning = new HttpHeaderValueCollection<WarningHeaderValue>(this, WarningName);
+            WwwAuthenticate = new HttpHeaderValueCollection<AuthenticationHeaderValue>(this, WwwAuthenticateName);
         }
 
         // ================================================================
@@ -75,37 +63,37 @@ namespace System.Curl.Http
         // ================================================================
 
         /// <summary>Connection.</summary>
-        public HttpHeaderValueCollection<string> Connection => _connection;
+        public HttpHeaderValueCollection<string> Connection { get; }
 
         /// <summary>Pragma.</summary>
-        public HttpHeaderValueCollection<NameValueHeaderValue> Pragma => _pragma;
+        public HttpHeaderValueCollection<NameValueHeaderValue> Pragma { get; }
 
         /// <summary>Proxy-Authenticate.</summary>
-        public HttpHeaderValueCollection<AuthenticationHeaderValue> ProxyAuthenticate => _proxyAuthenticate;
+        public HttpHeaderValueCollection<AuthenticationHeaderValue> ProxyAuthenticate { get; }
 
         /// <summary>Server.</summary>
-        public HttpHeaderValueCollection<ProductInfoHeaderValue> Server => _server;
+        public HttpHeaderValueCollection<ProductInfoHeaderValue> Server { get; }
 
         /// <summary>Trailer.</summary>
-        public HttpHeaderValueCollection<string> Trailer => _trailer;
+        public HttpHeaderValueCollection<string> Trailer { get; }
 
         /// <summary>Transfer-Encoding.</summary>
-        public HttpHeaderValueCollection<TransferCodingHeaderValue> TransferEncoding => _transferEncoding;
+        public HttpHeaderValueCollection<TransferCodingHeaderValue> TransferEncoding { get; }
 
         /// <summary>Upgrade.</summary>
-        public HttpHeaderValueCollection<ProductHeaderValue> Upgrade => _upgrade;
+        public HttpHeaderValueCollection<ProductHeaderValue> Upgrade { get; }
 
         /// <summary>Vary.</summary>
-        public HttpHeaderValueCollection<string> Vary => _vary;
+        public HttpHeaderValueCollection<string> Vary { get; }
 
         /// <summary>Via.</summary>
-        public HttpHeaderValueCollection<ViaHeaderValue> Via => _via;
+        public HttpHeaderValueCollection<ViaHeaderValue> Via { get; }
 
         /// <summary>Warning.</summary>
-        public HttpHeaderValueCollection<WarningHeaderValue> Warning => _warning;
+        public HttpHeaderValueCollection<WarningHeaderValue> Warning { get; }
 
         /// <summary>WWW-Authenticate.</summary>
-        public HttpHeaderValueCollection<AuthenticationHeaderValue> WwwAuthenticate => _wwwAuthenticate;
+        public HttpHeaderValueCollection<AuthenticationHeaderValue> WwwAuthenticate { get; }
 
         // ================================================================
         //  Одиночные значения (типизированные свойства)

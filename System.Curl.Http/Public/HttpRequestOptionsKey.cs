@@ -29,12 +29,7 @@ namespace System.Curl.Http
         /// <param name="key">Имя ключа. Не может быть <see langword="null"/>.</param>
         public HttpRequestOptionsKey(string key)
         {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            Key = key;
+            Key = key ?? throw new ArgumentNullException(nameof(key));
         }
 
         /// <inheritdoc />

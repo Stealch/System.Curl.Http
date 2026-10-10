@@ -42,7 +42,6 @@ namespace System.Curl.Http
         where T : class
     {
         private readonly HttpHeaders _headers;
-        private readonly string _name;
         private readonly Action<HttpHeaders, string, T>? _validator;
 
         /// <summary>
@@ -60,19 +59,19 @@ namespace System.Curl.Http
             Action<HttpHeaders, string, T>? validator = null)
         {
             _headers = headers ?? throw new ArgumentNullException(nameof(headers));
-            _name = name ?? throw new ArgumentNullException(nameof(name));
+            Name = name ?? throw new ArgumentNullException(nameof(name));
             _validator = validator;
         }
 
         /// <summary>
         /// Имя заголовка, к которому привязана коллекция.
         /// </summary>
-        public string Name => _name;
+        public string Name { get; }
 
         /// <summary>
         /// Количество значений заголовка.
         /// </summary>
-        public int Count => _headers.GetValues(_name).Count();
+        public int Count => _headers.GetValues(Name).Count();
 
         /// <summary>
         /// Коллекция только для чтения? Всегда <see langword="false"/>.
@@ -96,16 +95,16 @@ namespace System.Curl.Http
                 throw new ArgumentNullException(nameof(item));
             }
 
-            _validator?.Invoke(_headers, _name, item);
+            _validator?.Invoke(_headers, Name, item);
 
             var serialized = item.ToString();
             if (string.IsNullOrEmpty(serialized))
             {
                 throw new InvalidOperationException(
-                    $"Значение заголовка '{_name}' сериализуется в пустую строку.");
+                    $"Значение заголовка '{Name}' сериализуется в пустую строку.");
             }
 
-            _headers.Add(_name, serialized!);
+            _headers.Add(Name, serialized!);
         }
 
         /// <summary>
@@ -113,7 +112,7 @@ namespace System.Curl.Http
         /// </summary>
         public void Clear()
         {
-            _headers.Remove(_name);
+            _headers.Remove(Name);
         }
 
         /// <summary>
@@ -127,7 +126,7 @@ namespace System.Curl.Http
             }
 
             var target = item.ToString();
-            foreach (var value in _headers.GetValues(_name))
+            foreach (var value in _headers.GetValues(Name))
             {
                 if (string.Equals(value, target, StringComparison.Ordinal))
                 {
@@ -150,7 +149,7 @@ namespace System.Curl.Http
             }
 
             var target = item.ToString();
-            var values = new List<string>(_headers.GetValues(_name));
+            var values = new List<string>(_headers.GetValues(Name));
             var index = values.FindIndex(v => string.Equals(v, target, StringComparison.Ordinal));
             if (index < 0)
             {
@@ -159,10 +158,10 @@ namespace System.Curl.Http
 
             values.RemoveAt(index);
 
-            _headers.Remove(_name);
+            _headers.Remove(Name);
             foreach (var value in values)
             {
-                _headers.Add(_name, value);
+                _headers.Add(Name, value);
             }
 
             return true;
@@ -174,7 +173,7 @@ namespace System.Curl.Http
         /// </summary>
         public override string ToString()
         {
-            return string.Join(", ", _headers.GetValues(_name));
+            return string.Join(", ", _headers.GetValues(Name));
         }
     }
 }

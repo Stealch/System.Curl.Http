@@ -51,17 +51,12 @@ namespace System.Curl.Http
         /// <param name="bufferSize">Размер буфера для чтения. Должен быть больше нуля.</param>
         public StreamContent(Stream source, int bufferSize)
         {
-            if (source == null)
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
-
             if (bufferSize <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(bufferSize), "Размер буфера должен быть больше нуля.");
             }
 
-            _source = source;
+            _source = source ?? throw new ArgumentNullException(nameof(source));
             _bufferSize = bufferSize;
         }
 

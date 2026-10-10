@@ -19,9 +19,6 @@ namespace System.Curl.Http
     /// </remarks>
     public class HttpResponseMessage : IDisposable
     {
-        private HttpStatusCode _statusCode;
-        private string? _reasonPhrase;
-        private HttpContent? _content;
         private bool _disposed;
         private HttpResponseHeaders? _headers;
         private HttpResponseHeaders? _trailingHeaders;
@@ -39,7 +36,7 @@ namespace System.Curl.Http
         /// </summary>
         public HttpResponseMessage(HttpStatusCode statusCode)
         {
-            _statusCode = statusCode;
+            StatusCode = statusCode;
         }
 
         // ================================================================
@@ -49,20 +46,12 @@ namespace System.Curl.Http
         /// <summary>
         /// HTTP-код состояния ответа.
         /// </summary>
-        public HttpStatusCode StatusCode
-        {
-            get => _statusCode;
-            set => _statusCode = value;
-        }
+        public HttpStatusCode StatusCode { get; set; }
 
         /// <summary>
         /// Причина статус-кода (например, <c>"OK"</c> для 200). Может быть <see langword="null"/>.
         /// </summary>
-        public string? ReasonPhrase
-        {
-            get => _reasonPhrase;
-            set => _reasonPhrase = value;
-        }
+        public string? ReasonPhrase { get; set; }
 
         /// <summary>
         /// Версия HTTP, использованная в ответе. По умолчанию <c>1.1</c>.
@@ -78,11 +67,7 @@ namespace System.Curl.Http
         /// <summary>
         /// Тело ответа.
         /// </summary>
-        public HttpContent? Content
-        {
-            get => _content;
-            set => _content = value;
-        }
+        public HttpContent? Content { get; set; }
 
         /// <summary>
         /// Заголовки ответа.
@@ -102,7 +87,7 @@ namespace System.Curl.Http
         /// <summary>
         /// <see langword="true"/>, если статус-код в диапазоне 200–299.
         /// </summary>
-        public bool IsSuccessStatusCode => _statusCode >= HttpStatusCode.OK && (int)_statusCode <= 299;
+        public bool IsSuccessStatusCode => StatusCode >= HttpStatusCode.OK && (int)StatusCode <= 299;
 
         // ================================================================
         //  Методы
@@ -120,10 +105,10 @@ namespace System.Curl.Http
                 return this;
             }
 
-            var message = $"Response status code does not indicate success: " +
-                          $"{(int)_statusCode} ({_reasonPhrase ?? _statusCode.ToString()}).";
+            var message = "Response status code does not indicate success: " +
+                          $"{(int)StatusCode} ({ReasonPhrase ?? StatusCode.ToString()}).";
 
-            throw new HttpRequestException(message, null, _statusCode);
+            throw new HttpRequestException(message, null, StatusCode);
         }
 
         // ================================================================
@@ -150,8 +135,8 @@ namespace System.Curl.Http
 
             if (disposing)
             {
-                _content?.Dispose();
-                _content = null;
+                Content?.Dispose();
+                Content = null;
             }
 
             _disposed = true;

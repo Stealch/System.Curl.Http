@@ -18,8 +18,6 @@ namespace System.Curl.Http
     public class HttpRequestMessage : IDisposable
     {
         private HttpMethod _method;
-        private Uri? _requestUri;
-        private HttpContent? _content;
         private bool _disposed;
         private HttpRequestHeaders? _headers;
         private HttpRequestOptions? _options;
@@ -46,7 +44,7 @@ namespace System.Curl.Http
         public HttpRequestMessage(HttpMethod method, Uri? requestUri)
         {
             _method = method ?? throw new ArgumentNullException(nameof(method));
-            _requestUri = requestUri;
+            RequestUri = requestUri;
         }
 
         // ================================================================
@@ -65,20 +63,12 @@ namespace System.Curl.Http
         /// <summary>
         /// URI запроса. Может быть относительным (если задан <c>BaseAddress</c> у <see cref="HttpClient"/>).
         /// </summary>
-        public Uri? RequestUri
-        {
-            get => _requestUri;
-            set => _requestUri = value;
-        }
+        public Uri? RequestUri { get; set; }
 
         /// <summary>
         /// Тело запроса. <see langword="null"/> для GET/HEAD/DELETE без тела.
         /// </summary>
-        public HttpContent? Content
-        {
-            get => _content;
-            set => _content = value;
-        }
+        public HttpContent? Content { get; set; }
 
         /// <summary>
         /// Заголовки запроса.
@@ -125,8 +115,8 @@ namespace System.Curl.Http
 
             if (disposing)
             {
-                _content?.Dispose();
-                _content = null;
+                Content?.Dispose();
+                Content = null;
             }
 
             _disposed = true;
