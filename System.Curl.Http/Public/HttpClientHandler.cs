@@ -86,21 +86,50 @@ namespace System.Curl.Http
         }
 
         /// <summary>
-        /// Использовать учётные данные по умолчанию. Пока не поддерживается.
+        /// Использовать учётные данные текущего пользователя Windows
+        /// (Negotiate / SPNEGO / Kerberos).
         /// </summary>
+        /// <remarks>
+        /// При установке <see langword="true"/> <see cref="Credentials"/>
+        /// автоматически принимает значение <see cref="CredentialCache.DefaultCredentials"/>,
+        /// как в BCL.
+        /// </remarks>
         public bool UseDefaultCredentials
         {
             get => _inner.UseDefaultCredentials;
-            set => _inner.UseDefaultCredentials = value;
+            set
+            {
+                _inner.UseDefaultCredentials = value;
+                if (value)
+                {
+                    _inner.Credentials = CredentialCache.DefaultCredentials;
+                }
+            }
         }
 
         /// <summary>
-        /// Учётные данные для аутентификации на сервере. Пока не поддерживается.
+        /// Учётные данные для аутентификации на сервере.
         /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// Попытка чтения после установки <see cref="UseDefaultCredentials"/> = <see langword="true"/>.
+        /// </exception>
         public ICredentials? Credentials
         {
-            get => _inner.Credentials;
-            set => _inner.Credentials = value;
+            get
+            {
+                if (_inner.UseDefaultCredentials)
+                {
+                    throw new InvalidOperationException(
+                        "Credentials нельзя читать, когда UseDefaultCredentials = true.");
+                }
+
+                return _inner.Credentials;
+            }
+            set
+            {
+                _inner.UseDefaultCredentials = false;
+                _inner.Credentials = value;
+            }
         }
 
         /// <summary>

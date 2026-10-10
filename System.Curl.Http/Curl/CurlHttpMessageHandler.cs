@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Curl.Http.Internal;
 using System.Curl.Http.Interop;
 using System.Curl.Http;
+using System.Runtime.InteropServices;
 
 namespace System.Curl.Http.Curl
 {
@@ -33,6 +34,8 @@ namespace System.Curl.Http.Curl
     {
         private const string Category = "CurlHttpMessageHandler";
         private const int DefaultMaxRedirs = 50;
+        private GCHandle _clientCertBlobHandle;
+        private IntPtr _clientCertBlobPtr = IntPtr.Zero;
 
         // ================================================================
         //  Конфигурация транспорта
@@ -266,6 +269,8 @@ namespace System.Curl.Http.Curl
             }
 
             ApplyProxy(session, requestUri);
+            ApplyAuthentication(session, requestUri);
+            ApplyClientCertificates(session);
         }
 
         private void ApplyProxy(CurlEasySession session, Uri? requestUri)
@@ -320,9 +325,22 @@ namespace System.Curl.Http.Curl
             Logger.Trace(Category, $"Прокси применён: {proxyUrl}");
         }
 
+        private void ApplyAuthentication(CurlEasySession session, Uri? requestUri)
+        {
+            if (UseDefaultCredentials)
+            {
+                ApplyUseDefaultCredentials(session);
+                return;
+            }
+
+            if (Credentials != null)
+            {
+                ApplyCredentials(session, requestUri);
+            }
+        }
+
         private string? ResolveProxyUrl(Uri? requestUri)
         {
-            // Явный прокси через IWebProxy.
             if (Proxy != null && requestUri != null)
             {
                 var proxyUri = Proxy.GetProxy(requestUri);
@@ -352,24 +370,20 @@ namespace System.Curl.Http.Curl
             var password = networkCredential.Password ?? string.Empty;
             session.SetProxyCredentials($"{user}:{password}");
 
-            // Метод аутентификации.
             var authMask = ProxyAuth ?? CURLAUTH.ANY;
             session.SetProxyAuth(authMask);
         }
 
         private void ApplyProxyTlsOptions(CurlEasySession session)
         {
-            // TLS-версия.
             if (ProxySslVersion.HasValue)
             {
                 session.SetProxySslVersion(ProxySslVersion.Value);
             }
 
-            // Проверка сертификата.
             session.SetProxySslVerifyPeer(ProxySslVerifyPeer);
             session.SetProxySslVerifyHost(ProxySslVerifyHost);
 
-            // CA bundle.
             if (!string.IsNullOrEmpty(ProxyCaBundle))
             {
                 session.SetProxyCaBundle(ProxyCaBundle!);
@@ -380,7 +394,6 @@ namespace System.Curl.Http.Curl
                 session.SetProxyCaPath(ProxyCaPath!);
             }
 
-            // Клиентский сертификат.
             if (!string.IsNullOrEmpty(ProxyClientCert))
             {
                 session.SetProxySslCert(ProxyClientCert!);
@@ -405,6 +418,86 @@ namespace System.Curl.Http.Curl
             {
                 session.SetProxyKeyPassword(ProxyKeyPassword!);
             }
+        }
+
+        private void ApplyCredentials(CurlEasySession session, Uri? requestUri)
+        {
+            if (Credentials == null || requestUri == null)
+            {
+                return;
+            }
+
+            var networkCredential = Credentials.GetCredential(requestUri, "Basic");
+            if (networkCredential == null)
+            {
+                return;
+            }
+
+            var user = networkCredential.UserName ?? string.Empty;
+            var password = networkCredential.Password ?? string.Empty;
+
+            session.SetUserPwd($"{user}:{password}");
+            session.SetHttpAuth(CURLAUTH.BASIC);
+
+            Logger.Trace(Category, "Учётные данные сервера применены (Basic).");
+        }
+
+        private void ApplyUseDefaultCredentials(CurlEasySession session)
+        {
+            if (!UseDefaultCredentials)
+            {
+                return;
+            }
+
+            session.SetHttpAuth(CURLAUTH.NEGOTIATE);
+
+            Logger.Trace(Category, "Аутентификация Windows (Negotiate) включена.");
+        }
+
+        private void ApplyClientCertificates(CurlEasySession session)
+        {
+            var certificates = SslOptions?.ClientCertificates;
+            if (certificates == null || certificates.Count == 0)
+            {
+                return;
+            }
+
+            // Берём первый сертификат с приватным ключом.
+            X509Certificate2? cert = null;
+            foreach (var c in certificates)
+            {
+                if (c is X509Certificate2 x509 && x509.HasPrivateKey)
+                {
+                    cert = x509;
+                    break;
+                }
+            }
+
+            if (cert == null)
+            {
+                Logger.Warning(Category, "ClientCertificates заданы, но ни один не имеет приватного ключа.");
+                return;
+            }
+
+            // Экспорт в PKCS#12 без пароля.
+            var pfx = cert.Export(X509ContentType.Pkcs12);
+
+            // Создаём blob в неуправляемой памяти.
+            _clientCertBlobHandle = GCHandle.Alloc(pfx, GCHandleType.Pinned);
+            var blob = new curl_blob
+            {
+                data = _clientCertBlobHandle.AddrOfPinnedObject(),
+                len = (UIntPtr)(uint)pfx.Length,
+                flags = CURL_BLOB.NOCOPY,
+            };
+
+            _clientCertBlobPtr = Marshal.AllocHGlobal(Marshal.SizeOf<curl_blob>());
+            Marshal.StructureToPtr(blob, _clientCertBlobPtr, false);
+
+            session.SetSslCertBlob(_clientCertBlobPtr);
+            session.SetSslCertType("P12");
+
+            Logger.Trace(Category, $"Клиентский сертификат применён (PKCS#12, {pfx.Length} байт).");
         }
 
         private static void ApplyCaBundle(CurlEasySession session)
@@ -541,8 +634,20 @@ namespace System.Curl.Http.Curl
         // ================================================================
 
         /// <inheritdoc />
+        /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {
+            if (_clientCertBlobHandle.IsAllocated)
+            {
+                _clientCertBlobHandle.Free();
+            }
+
+            if (_clientCertBlobPtr != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(_clientCertBlobPtr);
+                _clientCertBlobPtr = IntPtr.Zero;
+            }
+
             base.Dispose(disposing);
         }
     }

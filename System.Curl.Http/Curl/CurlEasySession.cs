@@ -222,6 +222,19 @@ namespace System.Curl.Http.Curl
         }
 
         /// <summary>
+        /// Устанавливает метод HTTP-аутентификации на сервере.
+        /// Битовая маска из <see cref="CURLAUTH"/>.
+        /// </summary>
+        /// <param name="authMask">Битовая маска методов аутентификации.</param>
+        public void SetHttpAuth(long authMask)
+        {
+            ThrowIfDisposed();
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_HTTPAUTH, authMask),
+                "SetHttpAuth");
+        }
+
+        /// <summary>
         /// Управляет автоматическим следованием редиректам.
         /// </summary>
         public void SetFollowLocation(bool follow)
@@ -330,6 +343,25 @@ namespace System.Curl.Http.Curl
             CheckResult(
                 NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_HTTP_TRANSFER_DECODING, 0L),
                 "DisableTransferDecoding");
+        }
+
+        /// <summary>
+        /// Устанавливает учётные данные для аутентификации на сервере.
+        /// Формат: <c>"username:password"</c>.
+        /// </summary>
+        /// <param name="userPwd">Учётные данные в формате <c>user:password</c>.</param>
+        public void SetUserPwd(string userPwd)
+        {
+            ThrowIfDisposed();
+
+            if (string.IsNullOrEmpty(userPwd))
+            {
+                throw new ArgumentException("Учётные данные не могут быть пустыми.", nameof(userPwd));
+            }
+
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_USERPWD, userPwd),
+                "SetUserPwd");
         }
 
         /// <summary>
@@ -654,6 +686,60 @@ namespace System.Curl.Http.Curl
             CheckResult(
                 NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_PROXY_PINNEDPUBLICKEY, publicKey),
                 "SetProxyPinnedPublicKey");
+        }
+
+        /// <summary>
+        /// Устанавливает клиентский сертификат из blob (PKCS#12).
+        /// </summary>
+        /// <param name="blobPtr">Указатель на структуру <see cref="curl_blob"/>.</param>
+        public void SetSslCertBlob(IntPtr blobPtr)
+        {
+            ThrowIfDisposed();
+
+            if (blobPtr == IntPtr.Zero)
+            {
+                throw new ArgumentException("Указатель на blob не может быть нулевым.", nameof(blobPtr));
+            }
+
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_SSLCERT_BLOB, blobPtr),
+                "SetSslCertBlob");
+        }
+
+        /// <summary>
+        /// Устанавливает тип клиентского сертификата (например, <c>"P12"</c>, <c>"PEM"</c>, <c>"DER"</c>).
+        /// </summary>
+        /// <param name="certType">Тип сертификата.</param>
+        public void SetSslCertType(string certType)
+        {
+            ThrowIfDisposed();
+
+            if (string.IsNullOrEmpty(certType))
+            {
+                throw new ArgumentException("Тип сертификата не может быть пустым.", nameof(certType));
+            }
+
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_SSLCERTTYPE, certType),
+                "SetSslCertType");
+        }
+
+        /// <summary>
+        /// Устанавливает пароль к приватному ключу клиентского сертификата.
+        /// </summary>
+        /// <param name="password">Пароль.</param>
+        public void SetKeyPassword(string password)
+        {
+            ThrowIfDisposed();
+
+            if (string.IsNullOrEmpty(password))
+            {
+                throw new ArgumentException("Пароль не может быть пустым.", nameof(password));
+            }
+
+            CheckResult(
+                NativeMethods.Curl_easy_setopt(_handle, CURLoption.CURLOPT_KEYPASSWD, password),
+                "SetKeyPassword");
         }
 
         // ================================================================

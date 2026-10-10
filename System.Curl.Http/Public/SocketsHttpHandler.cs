@@ -74,7 +74,10 @@ namespace System.Curl.Http
             set => _inner.Proxy = value;
         }
 
-        /// <summary>Использовать учётные данные по умолчанию.</summary>
+        /// <summary>
+        /// Использовать учётные данные текущего пользователя Windows
+        /// (Negotiate / SPNEGO / Kerberos).
+        /// </summary>
         public bool UseDefaultCredentials
         {
             get => _inner.UseDefaultCredentials;
