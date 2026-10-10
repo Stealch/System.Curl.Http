@@ -16,6 +16,8 @@
     <Deterministic>true</Deterministic>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -63,6 +65,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Content\ByteArrayContent.cs" />
+    <Compile Include="Content\FormUrlEncodedContent.cs" />
+    <Compile Include="Content\HttpContent.cs" />
+    <Compile Include="Content\MultipartFormDataContent.cs" />
+    <Compile Include="Content\StreamContent.cs" />
+    <Compile Include="Content\StringContent.cs" />
+    <Compile Include="Curl\CurlEasySession.cs" />
+    <Compile Include="Curl\CurlHttpMessageHandler.cs" />
+    <Compile Include="Curl\HttpRequestMapper.cs" />
+    <Compile Include="Curl\HttpResponseParser.cs" />
     <Compile Include="Internal\CurlException.cs" />
     <Compile Include="Internal\GCHandleScope.cs" />
     <Compile Include="Internal\Logger.cs" />
@@ -78,11 +90,27 @@
     <Compile Include="Interop\NativeMethods.cs" />
     <Compile Include="Native\LibCurlLoader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Public\HttpClient.cs" />
+    <Compile Include="Public\HttpClientHandler.cs" />
+    <Compile Include="Public\HttpCompletionOption.cs" />
+    <Compile Include="Public\HttpContentHeaders.cs" />
+    <Compile Include="Public\HttpHeaders.cs" />
+    <Compile Include="Public\HttpHeaderValueCollection.cs" />
+    <Compile Include="Public\HttpMessageHandler.cs" />
+    <Compile Include="Public\HttpMethod.cs" />
+    <Compile Include="Public\HttpRequestException.cs" />
+    <Compile Include="Public\HttpRequestHeaders.cs" />
+    <Compile Include="Public\HttpRequestMessage.cs" />
+    <Compile Include="Public\HttpRequestOptions.cs" />
+    <Compile Include="Public\HttpRequestOptionsKey.cs" />
+    <Compile Include="Public\HttpResponseHeaders.cs" />
+    <Compile Include="Public\HttpResponseMessage.cs" />
+    <Compile Include="Public\HttpStatusCode.cs" />
+    <Compile Include="Public\HttpVersionPolicy.cs" />
+    <Compile Include="Public\SocketsHttpHandler.cs" />
+    <Compile Include="Public\SslClientAuthenticationOptions.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Content\" />
-    <Folder Include="Curl\" />
-    <Folder Include="Public\" />
     <Folder Include="Utilities\" />
   </ItemGroup>
   <ItemGroup>
@@ -99,4 +127,11 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\packages\ILRepack.Lib.MSBuild.Task.2.0.48\build\ILRepack.Lib.MSBuild.Task.targets" Condition="Exists('..\packages\ILRepack.Lib.MSBuild.Task.2.0.48\build\ILRepack.Lib.MSBuild.Task.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>Данный проект ссылается на пакеты NuGet, отсутствующие на этом компьютере. Используйте восстановление пакетов NuGet, чтобы скачать их.  Дополнительную информацию см. по адресу: http://go.microsoft.com/fwlink/?LinkID=322105. Отсутствует следующий файл: {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\ILRepack.Lib.MSBuild.Task.2.0.48\build\ILRepack.Lib.MSBuild.Task.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILRepack.Lib.MSBuild.Task.2.0.48\build\ILRepack.Lib.MSBuild.Task.targets'))" />
+  </Target>
 </Project>
