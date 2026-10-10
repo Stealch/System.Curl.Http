@@ -101,18 +101,36 @@ class Program
 
 ## 🏗 Архитектура
 
-```mermaid
-graph TD
-    A[Ваш код: System.Curl.Http.HttpClient] --> B[CurlHttpMessageHandler]
-    B --> C[HttpRequestMapper]
-    C -->|Преобразует запрос| D[CurlEasySession]
-    D -->|P/Invoke: LoadLibrary + GetProcAddress| E[NativeMethods]
-    E --> F[(libcurl-x64/x86.dll)]
-    F -->|OpenSSL 3.x| G((Интернет / API))
-    
-    H[LibCurlLoader] -.->|Распаковка из EmbeddedResource| F
-    D -->|Callbacks| I[HttpResponseParser]
-    I -->|Возвращает| B
+```text
++-----------------------------------+
+| Ваш код (System.Curl.Http)        |
++-----------------------------------+
+                  │
+                  ▼
++-----------------------------------+
+| CurlHttpMessageHandler            |
++-----------------------------------+
+                  │
+                  ▼
++-----------------------------------+      +------------------------+
+| HttpRequestMapper                 | ---> | CurlEasySession        |
++-----------------------------------+      +------------------------+
+                                                  │ (P/Invoke)
+                                                  ▼
++-----------------------------------+      +------------------------+
+| LibCurlLoader                     | ---> | libcurl + OpenSSL      |  ---> Интернет / API
+| (Распаковка из EmbeddedResource)  |      | (x64 / x86 .dll)       |
++-----------------------------------+      +------------------------+
+                                                  │ (Callbacks)
+                                                  ▼
++-----------------------------------+      +------------------------+
+| HttpResponseParser                | <--- | ParsedHttpResponse     |
++-----------------------------------+      +------------------------+
+                  │
+                  ▼
++-----------------------------------+
+| Возврат ответа в ваш код          |
++-----------------------------------+
 ```
 
 ---
