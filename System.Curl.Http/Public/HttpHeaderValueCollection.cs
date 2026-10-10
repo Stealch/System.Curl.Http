@@ -1,7 +1,6 @@
 ﻿#nullable enable
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,16 +13,32 @@ namespace System.Curl.Http
     /// <typeparam name="T">Тип значения заголовка (например, <c>MediaTypeWithQualityHeaderValue</c>).</typeparam>
     /// <remarks>
     /// <para>
-    /// Модель повторяет <c>System.Net.Http.Headers.HttpHeaderValueCollection&lt;T&gt;</c>,
+    /// Модель адаптирована из <c>System.Net.Http.Headers.HttpHeaderValueCollection&lt;T&gt;</c>,
     /// но привязана к <see cref="HttpHeaders"/>, а не к BCL-овскому <c>HttpHeaders</c>.
     /// </para>
     /// <para>
+    /// <b>Отличие от BCL:</b> коллекция <b>не реализует</b> <see cref="IEnumerable{T}"/>.
+    /// Это осознанное решение: значения заголовков хранятся как строки, а их
+    /// типизированное представление (<typeparamref name="T"/>) требует парсинга,
+    /// специфичного для каждого типа. BCL использует для этого внутренний
+    /// <c>HttpHeaderParser</c>, который не экспортируется.
+    /// </para>
+    /// <para>
+    /// <b>Как перечислить значения:</b> используйте <see cref="HttpHeaders.GetValues"/>,
+    /// который возвращает <see cref="IEnumerable{String}"/>:
+    /// <code>
+    /// foreach (var value in request.Headers.GetValues("Accept"))
+    /// {
+    ///     // value — string
+    /// }
+    /// </code>
+    /// </para>
+    /// <para>
     /// Экземпляр не хранит значения сам — он читает и пишет в родительский
-    /// <see cref="HttpHeaders"/> по имени заголовка. Это позволяет коллекции
-    /// и заголовкам быть согласованными.
+    /// <see cref="HttpHeaders"/> по имени заголовка.
     /// </para>
     /// </remarks>
-    public class HttpHeaderValueCollection<T> : ICollection<T>
+    public class HttpHeaderValueCollection<T>
         where T : class
     {
         private readonly HttpHeaders _headers;
@@ -67,6 +82,13 @@ namespace System.Curl.Http
         /// <summary>
         /// Добавляет значение в заголовок.
         /// </summary>
+        /// <param name="item">Значение заголовка.</param>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="item"/> равен <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Валидатор отклонил значение.
+        /// </exception>
         public void Add(T item)
         {
             if (item == null)
@@ -75,7 +97,15 @@ namespace System.Curl.Http
             }
 
             _validator?.Invoke(_headers, _name, item);
-            _headers.Add(_name, item.ToString()!);
+
+            var serialized = item.ToString();
+            if (string.IsNullOrEmpty(serialized))
+            {
+                throw new InvalidOperationException(
+                    $"Значение заголовка '{_name}' сериализуется в пустую строку.");
+            }
+
+            _headers.Add(_name, serialized!);
         }
 
         /// <summary>
@@ -109,25 +139,9 @@ namespace System.Curl.Http
         }
 
         /// <summary>
-        /// Копирует строковые значения заголовка в массив.
-        /// </summary>
-        /// <remarks>
-        /// Из-за того, что в хранилище лежат строки, а не экземпляры <typeparamref name="T"/>,
-        /// полноценная типизированная копия невозможна. Метод копирует
-        /// строковые представления, приведённые к <typeparamref name="T"/> через
-        /// <see cref="Convert"/> — если тип совместим. В большинстве случаев это
-        /// не сработает, и метод бросает <see cref="NotSupportedException"/>.
-        /// </remarks>
-        public void CopyTo(T[] array, int arrayIndex)
-        {
-            throw new NotSupportedException(
-                "CopyTo не поддерживается: строковое представление заголовков нельзя " +
-                "преобразовать в экземпляры типа T без парсера.");
-        }
-
-        /// <summary>
         /// Удаляет первое вхождение значения (по строковому представлению).
         /// </summary>
+        /// <returns><see langword="true"/>, если значение было удалено.</returns>
         public bool Remove(T item)
         {
             if (item == null)
@@ -144,41 +158,14 @@ namespace System.Curl.Http
             }
 
             values.RemoveAt(index);
-            if (values.Count == 0)
+
+            _headers.Remove(_name);
+            foreach (var value in values)
             {
-                _headers.Remove(_name);
-            }
-            else
-            {
-                _headers.Remove(_name);
-                foreach (var value in values)
-                {
-                    _headers.Add(_name, value);
-                }
+                _headers.Add(_name, value);
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Перечисляет строковые значения заголовка.
-        /// </summary>
-        /// <remarks>
-        /// Возвращает <see cref="string"/> как <typeparamref name="T"/>, что
-        /// небезопасно. Используйте <see cref="ToString"/> или прямые вызовы
-        /// <c>HttpHeaders.GetValues</c> для получения строк.
-        /// </remarks>
-        public IEnumerator<T> GetEnumerator()
-        {
-            foreach (var value in _headers.GetValues(_name))
-            {
-                yield return (T)(object)value;
-            }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
 
         /// <summary>

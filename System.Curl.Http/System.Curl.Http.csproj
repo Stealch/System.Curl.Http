@@ -81,12 +81,15 @@
     <Compile Include="Native\LibCurlLoader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Public\HttpCompletionOption.cs" />
+    <Compile Include="Public\HttpContentHeaders.cs" />
     <Compile Include="Public\HttpHeaders.cs" />
     <Compile Include="Public\HttpHeaderValueCollection.cs" />
     <Compile Include="Public\HttpMethod.cs" />
     <Compile Include="Public\HttpRequestException.cs" />
+    <Compile Include="Public\HttpRequestHeaders.cs" />
     <Compile Include="Public\HttpRequestOptions.cs" />
     <Compile Include="Public\HttpRequestOptionsKey.cs" />
+    <Compile Include="Public\HttpResponseHeaders.cs" />
     <Compile Include="Public\HttpStatusCode.cs" />
   </ItemGroup>
   <ItemGroup>
