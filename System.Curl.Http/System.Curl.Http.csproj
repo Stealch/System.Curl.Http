@@ -63,6 +63,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Curl\CurlEasySession.cs" />
     <Compile Include="Internal\CurlException.cs" />
     <Compile Include="Internal\GCHandleScope.cs" />
     <Compile Include="Internal\Logger.cs" />
@@ -81,7 +82,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Content\" />
-    <Folder Include="Curl\" />
     <Folder Include="Public\" />
     <Folder Include="Utilities\" />
   </ItemGroup>
