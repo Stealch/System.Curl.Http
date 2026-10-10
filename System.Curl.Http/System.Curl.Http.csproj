@@ -63,7 +63,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Content\ByteArrayContent.cs" />
+    <Compile Include="Content\FormUrlEncodedContent.cs" />
+    <Compile Include="Content\HttpContent.cs" />
+    <Compile Include="Content\MultipartFormDataContent.cs" />
+    <Compile Include="Content\StreamContent.cs" />
+    <Compile Include="Content\StringContent.cs" />
     <Compile Include="Curl\CurlEasySession.cs" />
+    <Compile Include="Curl\CurlHttpMessageHandler.cs" />
+    <Compile Include="Curl\HttpRequestMapper.cs" />
     <Compile Include="Curl\HttpResponseParser.cs" />
     <Compile Include="Internal\CurlException.cs" />
     <Compile Include="Internal\GCHandleScope.cs" />
@@ -80,20 +88,27 @@
     <Compile Include="Interop\NativeMethods.cs" />
     <Compile Include="Native\LibCurlLoader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Public\HttpClient.cs" />
+    <Compile Include="Public\HttpClientHandler.cs" />
     <Compile Include="Public\HttpCompletionOption.cs" />
     <Compile Include="Public\HttpContentHeaders.cs" />
     <Compile Include="Public\HttpHeaders.cs" />
     <Compile Include="Public\HttpHeaderValueCollection.cs" />
+    <Compile Include="Public\HttpMessageHandler.cs" />
     <Compile Include="Public\HttpMethod.cs" />
     <Compile Include="Public\HttpRequestException.cs" />
     <Compile Include="Public\HttpRequestHeaders.cs" />
+    <Compile Include="Public\HttpRequestMessage.cs" />
     <Compile Include="Public\HttpRequestOptions.cs" />
     <Compile Include="Public\HttpRequestOptionsKey.cs" />
     <Compile Include="Public\HttpResponseHeaders.cs" />
+    <Compile Include="Public\HttpResponseMessage.cs" />
     <Compile Include="Public\HttpStatusCode.cs" />
+    <Compile Include="Public\HttpVersionPolicy.cs" />
+    <Compile Include="Public\SocketsHttpHandler.cs" />
+    <Compile Include="Public\SslClientAuthenticationOptions.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Content\" />
     <Folder Include="Utilities\" />
   </ItemGroup>
   <ItemGroup>
