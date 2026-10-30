@@ -63,16 +63,16 @@ class Program
     static async Task Main()
     {
         var client = new HttpClient();
-        
+
         // Современный API, который может не работать на Win7 через Schannel
         var response = await client.GetAsync("https://api.deepseek.com/v1/models");
         response.EnsureSuccessStatusCode();
-        
+
         var body = await response.Content.ReadAsStringAsync();
         Console.WriteLine(body);
     }
 }
-
+```
 > ℹ️ **Совет:** Если в одном файле нужен доступ к стандартному BCL-овскому `HttpClient` параллельно с новым, используйте полное имя: `System.Net.Http.HttpClient`.
 
 ---
