@@ -73,6 +73,7 @@
     <Compile Include="Content\StringContent.cs" />
     <Compile Include="Curl\CurlEasySession.cs" />
     <Compile Include="Curl\CurlHttpMessageHandler.cs" />
+    <Compile Include="Curl\CurlMultiSession.cs" />
     <Compile Include="Curl\HttpRequestMapper.cs" />
     <Compile Include="Curl\HttpResponseParser.cs" />
     <Compile Include="Internal\CurlException.cs" />
@@ -84,6 +85,7 @@
     <Compile Include="Interop\CURLINFO.cs" />
     <Compile Include="Interop\CURLINFOtype.cs" />
     <Compile Include="Interop\CURLMcode.cs" />
+    <Compile Include="Interop\CURLMsg.cs" />
     <Compile Include="Interop\CURLoption.cs" />
     <Compile Include="Interop\CURLOPTTYPE.cs" />
     <Compile Include="Interop\CURLPROXY.cs" />
