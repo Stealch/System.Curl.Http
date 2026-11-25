@@ -90,10 +90,8 @@ namespace System.Curl.Http.Curl
             {
                 Logger.Trace(Category, "Передача добавлена в multi-хэндл.");
 
-                var runningHandles = 0;
-
                 // Первый perform — запускает передачу.
-                var performResult = NativeMethods.Curl_multi_perform(_multiHandle, out runningHandles);
+                var performResult = NativeMethods.Curl_multi_perform(_multiHandle, out int runningHandles);
                 if (performResult != CURLMcode.CURLM_OK)
                 {
                     throw new InvalidOperationException(
@@ -151,10 +149,9 @@ namespace System.Curl.Http.Curl
         /// </summary>
         private CURLcode ReadFinalResult(IntPtr easyHandle)
         {
-            int msgsInQueue;
             IntPtr msgPtr;
 
-            while ((msgPtr = NativeMethods.Curl_multi_info_read(_multiHandle, out msgsInQueue)) != IntPtr.Zero)
+            while ((msgPtr = NativeMethods.Curl_multi_info_read(_multiHandle, out int msgsInQueue)) != IntPtr.Zero)
             {
                 var msg = Marshal.PtrToStructure<CURLMsg>(msgPtr);
 
