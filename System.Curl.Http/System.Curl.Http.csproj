@@ -70,10 +70,12 @@
     <Compile Include="Content\HttpContent.cs" />
     <Compile Include="Content\MultipartFormDataContent.cs" />
     <Compile Include="Content\StreamContent.cs" />
+    <Compile Include="Content\StreamingHttpContent.cs" />
     <Compile Include="Content\StringContent.cs" />
     <Compile Include="Curl\CurlEasySession.cs" />
     <Compile Include="Curl\CurlHttpMessageHandler.cs" />
     <Compile Include="Curl\CurlMultiSession.cs" />
+    <Compile Include="Curl\CurlResponseStream.cs" />
     <Compile Include="Curl\HttpRequestMapper.cs" />
     <Compile Include="Curl\HttpResponseParser.cs" />
     <Compile Include="Internal\CurlException.cs" />
