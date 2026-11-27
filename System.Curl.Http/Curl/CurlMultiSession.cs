@@ -77,6 +77,13 @@ namespace System.Curl.Http.Curl
             return Task.FromResult(Perform(easyHandle, cancellationToken));
         }
 
+        /// <summary>
+        /// Выполняет easy-хэндл в multi-цикле до завершения. Синхронный:
+        /// <c>curl_multi_*</c> — блокирующие вызовы с коротким таймаутом.
+        /// </summary>
+        /// <param name="easyHandle">Настроенный easy-хэндл.</param>
+        /// <param name="cancellationToken">Токен отмены.</param>
+        /// <returns>Финальный <see cref="CURLcode"/> завершённой передачи.</returns>
         private CURLcode Perform(IntPtr easyHandle, CancellationToken cancellationToken)
         {
             var addResult = NativeMethods.Curl_multi_add_handle(_multiHandle, easyHandle);
@@ -90,17 +97,23 @@ namespace System.Curl.Http.Curl
             {
                 Logger.Trace(Category, "Передача добавлена в multi-хэндл.");
 
+                var runningHandles = 0;
+
                 // Первый perform — запускает передачу.
-                var performResult = NativeMethods.Curl_multi_perform(_multiHandle, out int runningHandles);
+                var performResult = NativeMethods.Curl_multi_perform(_multiHandle, out runningHandles);
                 if (performResult != CURLMcode.CURLM_OK)
                 {
                     throw new InvalidOperationException(
                         $"curl_multi_perform failed: {performResult} ({(int)performResult}).");
                 }
 
+                Logger.Trace(Category, $"[multi] initial perform: running={runningHandles}");
+
+                var iteration = 0;
                 while (runningHandles > 0)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    iteration++;
 
                     // Ждём активности (или таймаута), чтобы не крутить цикл вхолостую.
                     var pollResult = NativeMethods.Curl_multi_poll(
@@ -108,7 +121,7 @@ namespace System.Curl.Http.Curl
                         IntPtr.Zero,
                         0,
                         PollTimeoutMs,
-                        out _);
+                        out var numFds);
 
                     if (pollResult != CURLMcode.CURLM_OK)
                     {
@@ -116,17 +129,21 @@ namespace System.Curl.Http.Curl
                             $"curl_multi_poll failed: {pollResult} ({(int)pollResult}).");
                     }
 
+                    Logger.Trace(Category, $"[multi] iter {iteration}: poll numFds={numFds}");
+
                     performResult = NativeMethods.Curl_multi_perform(_multiHandle, out runningHandles);
                     if (performResult != CURLMcode.CURLM_OK)
                     {
                         throw new InvalidOperationException(
                             $"curl_multi_perform failed: {performResult} ({(int)performResult}).");
                     }
+
+                    Logger.Trace(Category, $"[multi] iter {iteration}: running={runningHandles}");
                 }
 
                 // Передача завершена — читаем финальный CURLcode из очереди сообщений.
                 var finalCode = ReadFinalResult(easyHandle);
-                Logger.Trace(Category, $"Передача завершена: {finalCode} ({(int)finalCode}).");
+                Logger.Trace(Category, $"[multi] done: {finalCode} ({(int)finalCode}), iterations={iteration}");
                 return finalCode;
             }
             finally
@@ -175,6 +192,9 @@ namespace System.Curl.Http.Curl
         // CURLMSG_DONE = 1 (CURLMSG_NONE = 0, CURLMSG_DONE = 1).
         private const int CURLMSG_DONE = 1;
 
+        /// <summary>
+        /// Бросает <see cref="ObjectDisposedException"/>, если сессия освобождена.
+        /// </summary>
         private void ThrowIfDisposed()
         {
             if (_disposed)

@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Curl.Http.Internal;
+using System.Curl.Http.Interop;
 
 namespace System.Curl.Http.Curl
 {
@@ -27,8 +28,8 @@ namespace System.Curl.Http.Curl
     {
         private const string Category = "HttpRequestMapper";
 
-        private const long SslVersionTls12 = 6L;
-        private const long HttpVersion2Tls = 4L;
+       // private const long SslVersionTls12 = 6L;
+       // private const long HttpVersion2Tls = 4L;
 
         /// <summary>
         /// Применяет параметры запроса к сессии.
@@ -94,8 +95,8 @@ namespace System.Curl.Http.Curl
             //  5. TLS / HTTP-версия
             // ============================================================
 
-            session.SetSslVersion(SslVersionTls12);
-            session.SetHttpVersion(HttpVersion2Tls);
+            session.SetSslVersion(CURL_SSLVERSION.TLSv1_2);
+            ApplyHttpVersion(request, session);
             session.SetNoSignal(true);
 
             var headerCount = request.Headers is null ? 0 : CountHeaders(request.Headers);
@@ -108,6 +109,62 @@ namespace System.Curl.Http.Curl
         //  Метод
         // ================================================================
 
+
+        /// <summary>
+        /// Маппит <see cref="HttpRequestMessage.Version"/> и
+        /// <see cref="HttpRequestMessage.VersionPolicy"/> в <c>CURLOPT_HTTP_VERSION</c>
+        /// по семантике BCL <c>HttpClient</c>.
+        /// </summary>
+        /// <param name="request">HTTP-запрос.</param>
+        /// <param name="session">Сессия libcurl.</param>
+        private static void ApplyHttpVersion(HttpRequestMessage request, CurlEasySession session)
+        {
+            var version = request.Version ?? System.Net.HttpVersion.Version11;
+            var policy = request.VersionPolicy;
+
+            long curlVersion;
+
+            if (version.Major >= 3)
+            {
+                // HTTP/3: только если явно запрошен.
+                curlVersion = policy == HttpVersionPolicy.RequestVersionExact
+                    ? CURL_HTTP_VERSION.V3ONLY
+                    : CURL_HTTP_VERSION.V3;
+            }
+            else if (version.Major >= 2)
+            {
+                // HTTP/2.
+                switch (policy)
+                {
+                    case HttpVersionPolicy.RequestVersionExact:
+                        // Только HTTP/2, без отката (prior knowledge).
+                        curlVersion = CURL_HTTP_VERSION.V2_PRIOR_KNOWLEDGE;
+                        break;
+
+                    case HttpVersionPolicy.RequestVersionOrHigher:
+                        // HTTP/2 или выше — 2TLS (ALPN для HTTPS, иначе 1.1).
+                        curlVersion = CURL_HTTP_VERSION.V2TLS;
+                        break;
+
+                    default:
+                        // RequestVersionOrLower: HTTP/2, но с откатом на 1.1.
+                        curlVersion = CURL_HTTP_VERSION.V2TLS;
+                        break;
+                }
+            }
+            else if (version.Major == 1 && version.Minor == 0)
+            {
+                // HTTP/1.0.
+                curlVersion = CURL_HTTP_VERSION.V1_0;
+            }
+            else
+            {
+                // HTTP/1.1 (дефолт BCL).
+                curlVersion = CURL_HTTP_VERSION.V1_1;
+            }
+
+            session.SetHttpVersion(curlVersion);
+        }
         private static void ApplyMethod(HttpMethod method, CurlEasySession session)
         {
             switch (method.Method.ToUpperInvariant())

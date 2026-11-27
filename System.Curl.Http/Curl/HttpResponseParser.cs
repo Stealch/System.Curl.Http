@@ -213,6 +213,14 @@ namespace System.Curl.Http.Curl
             }
         }
 
+        /// <summary>
+        /// Callback заголовков: декодирует Latin-1 и передаёт в разбор.
+        /// </summary>
+        /// <param name="buffer">Указатель на данные.</param>
+        /// <param name="size">Размер элемента.</param>
+        /// <param name="nitems">Количество элементов.</param>
+        /// <param name="userdata">Пользовательский указатель.</param>
+        /// <returns>Количество обработанных байт.</returns>
         private UIntPtr OnHeaderData(IntPtr buffer, UIntPtr size, UIntPtr nitems, IntPtr userdata)
         {
             var total = (int)(size.ToUInt64() * nitems.ToUInt64());
@@ -224,11 +232,12 @@ namespace System.Curl.Http.Curl
             try
             {
                 var chunk = new byte[total];
-                System.Runtime.InteropServices.Marshal.Copy(buffer, chunk, 0, total);
+                Runtime.InteropServices.Marshal.Copy(buffer, chunk, 0, total);
 
                 // Заголовки приходят ASCII (по RFC 7230), но допускается
                 // ISO-8859-1. Декодируем как Latin-1, чтобы не терять байты.
                 var text = Encoding.GetEncoding("ISO-8859-1").GetString(chunk);
+                Logger.Trace(Category, $"[header] raw={text.Replace("\r", "\\r").Replace("\n", "\\n")}");
                 AppendHeaderText(text);
 
                 return new UIntPtr((ulong)total);

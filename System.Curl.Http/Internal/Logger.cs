@@ -11,7 +11,7 @@ namespace System.Curl.Http.Internal
 {
     /// <summary>
     /// Простой статический логгер с уровнями детализации.
-    /// По умолчанию пишет в <see cref="Debug.WriteLine(string)"/>.
+    /// По умолчанию пишет в <see cref="Trace.WriteLine(string)"/>.
     /// Опционально — дублирует в файл рядом с библиотекой.
     /// </summary>
     /// <remarks>
@@ -23,11 +23,12 @@ namespace System.Curl.Http.Internal
     /// </list>
     /// </para>
     /// <para>
-    /// На релизной сборке вызовы <see cref="Debug.WriteLine(string)"/> вырезаются компилятором,
-    /// поэтому файловый лог остаётся единственным источником диагностики.
+    /// Используется <see cref="Trace.WriteLine(string)"/>, а не <see cref="Debug.WriteLine(string)"/>,
+    /// потому что <c>TRACE</c> определён и в Debug, и в Release (в отличие от <c>DEBUG</c>),
+    /// поэтому логи доступны в релизной сборке.
     /// </para>
     /// </remarks>
-    internal static class Logger
+    public static class Logger
     {
         private static string? _logFilePath;
         private static readonly object _fileLock = new object();
@@ -68,24 +69,45 @@ namespace System.Curl.Http.Internal
             LogFilePath = null;
         }
 
+        /// <summary>
+        /// Записывает сообщение уровня <see cref="LogLevel.Error"/>.
+        /// </summary>
         public static void Error(string category, string message)
             => Write(LogLevel.Error, category, message, null);
 
+        /// <summary>
+        /// Записывает сообщение уровня <see cref="LogLevel.Error"/> с исключением.
+        /// </summary>
         public static void Error(string category, string message, Exception exception)
             => Write(LogLevel.Error, category, message, exception);
 
+        /// <summary>
+        /// Записывает сообщение уровня <see cref="LogLevel.Warning"/>.
+        /// </summary>
         public static void Warning(string category, string message)
             => Write(LogLevel.Warning, category, message, null);
 
+        /// <summary>
+        /// Записывает сообщение уровня <see cref="LogLevel.Warning"/> с исключением.
+        /// </summary>
         public static void Warning(string category, string message, Exception exception)
             => Write(LogLevel.Warning, category, message, exception);
 
+        /// <summary>
+        /// Записывает сообщение уровня <see cref="LogLevel.Info"/>.
+        /// </summary>
         public static void Info(string category, string message)
             => Write(LogLevel.Info, category, message, null);
 
+        /// <summary>
+        /// Записывает сообщение уровня <see cref="LogLevel.Trace"/> (отладочное).
+        /// </summary>
         public static void Debug(string category, string message)
             => Write(LogLevel.Trace, category, message, null);
 
+        /// <summary>
+        /// Записывает сообщение уровня <see cref="LogLevel.Trace"/> (трассировка).
+        /// </summary>
         public static void Trace(string category, string message)
             => Write(LogLevel.Trace, category, message, null);
 
@@ -98,7 +120,7 @@ namespace System.Curl.Http.Internal
 
             var line = FormatLine(level, category, message);
 
-            System.Diagnostics.Debug.WriteLine(line);
+            System.Diagnostics.Trace.WriteLine(line);
 
             var path = _logFilePath;
             if (path == null)
@@ -122,7 +144,7 @@ namespace System.Curl.Http.Internal
             if (exception != null)
             {
                 var exLine = FormatException(exception);
-                System.Diagnostics.Debug.WriteLine(exLine);
+                System.Diagnostics.Trace.WriteLine(exLine);
 
                 if (path != null)
                 {

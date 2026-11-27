@@ -94,6 +94,7 @@
     <Compile Include="Interop\CURLPROXY_SSL_OPTIONS.cs" />
     <Compile Include="Interop\CurlBlobStruct.cs" />
     <Compile Include="Interop\CURL_BLOB.cs" />
+    <Compile Include="Interop\CURL_HTTP_VERSION.cs" />
     <Compile Include="Interop\CURL_SSLVERSION.cs" />
     <Compile Include="Interop\Delegates.cs" />
     <Compile Include="Interop\NativeFunctions.cs" />

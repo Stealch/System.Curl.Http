@@ -280,72 +280,93 @@ namespace System.Curl.Http.Curl
 
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // Запускаем multi-цикл в фоне: он будет качать тело,
-                // пока мы возвращаем ответ после заголовков.
                 var performTask = Task.Run(
                     () => multi.PerformAsync(session.Handle, cancellationToken),
                     cancellationToken);
 
-                // Ждём заголовки (или завершение/ошибку).
                 var completed = await Task.WhenAny(parser.HeadersReady, performTask).ConfigureAwait(false);
 
-                if (completed == performTask)
+                if (completed == performTask && !parser.HeadersReady.IsCompleted)
                 {
-                    // Передача завершилась до заголовков.
                     var code = await performTask.ConfigureAwait(false);
                     if (code != CURLcode.CURLE_OK)
                     {
                         throw BuildCurlException("StreamingPerform", code);
                     }
 
-                    // Заголовков не было (например, пустой ответ) — завершаем.
                     var parsedEmpty = parser.Complete();
                     var responseEmpty = BuildResponse(request, parsedEmpty, parsedEmpty.StatusCode);
                     CleanupStreaming(session, parser, multi);
                     return responseEmpty;
                 }
 
-                // Заголовки готовы — строим ответ с потоком.
                 var statusCode = parser.Response.StatusCode;
                 var content = new StreamingHttpContent(stream);
 
-                // Фоновая задача продолжает качать тело; при завершении —
-                // сигналим поток (EOF или ошибка) и освобождаем ресурсы.
-                _ = performTask.ContinueWith(t =>
+                if (!performTask.IsCompleted)
                 {
-                    try
+                    _ = performTask.ContinueWith(t =>
                     {
-                        if (t.IsFaulted)
+                        try
                         {
-                            var ex = t.Exception?.GetBaseException() ?? new HttpRequestException("Ошибка стриминга.");
-                            stream.SetException(ex);
-                        }
-                        else if (t.IsCanceled)
-                        {
-                            stream.SetException(new TaskCanceledException("Стриминг отменён."));
-                        }
-                        else
-                        {
-                            var code = t.Result;
-                            if (code != CURLcode.CURLE_OK)
+                            if (t.IsFaulted)
                             {
-                                stream.SetException(BuildCurlException("StreamingPerform", code));
+                                var ex = t.Exception?.GetBaseException() ?? new HttpRequestException("Ошибка стриминга.");
+                                stream.SetException(ex);
+                            }
+                            else if (t.IsCanceled)
+                            {
+                                stream.SetException(new TaskCanceledException("Стриминг отменён."));
                             }
                             else
                             {
-                                parser.Complete();
+                                var code = t.Result;
+                                if (code != CURLcode.CURLE_OK)
+                                {
+                                    stream.SetException(BuildCurlException("StreamingPerform", code));
+                                }
+                                else
+                                {
+                                    parser.Complete();
+                                }
                             }
                         }
-                    }
-                    catch (Exception ex)
+                        catch (Exception ex)
+                        {
+                            stream.SetException(ex);
+                        }
+                        finally
+                        {
+                            CleanupStreaming(session, parser, multi);
+                        }
+                    }, TaskScheduler.Default);
+                }
+                else
+                {
+                    if (performTask.IsFaulted)
                     {
+                        var ex = performTask.Exception?.GetBaseException() ?? new HttpRequestException("Ошибка стриминга.");
                         stream.SetException(ex);
                     }
-                    finally
+                    else if (performTask.IsCanceled)
                     {
-                        CleanupStreaming(session, parser, multi);
+                        stream.SetException(new TaskCanceledException("Стриминг отменён."));
                     }
-                }, TaskScheduler.Default);
+                    else
+                    {
+                        var code = performTask.Result;
+                        if (code != CURLcode.CURLE_OK)
+                        {
+                            stream.SetException(BuildCurlException("StreamingPerform", code));
+                        }
+                        else
+                        {
+                            parser.Complete();
+                        }
+                    }
+
+                    CleanupStreaming(session, parser, multi);
+                }
 
                 var response = BuildResponseWithContent(request, parser.Response, statusCode, content);
 

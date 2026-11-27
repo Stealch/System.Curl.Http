@@ -3,7 +3,7 @@
     /// <summary>
     /// Уровень детализации логирования.
     /// </summary>
-    internal enum LogLevel
+    public enum LogLevel
     {
         /// <summary>
         /// Логирование отключено полностью.

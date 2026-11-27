@@ -162,7 +162,7 @@ Logger.EnableFileLogging();
 | **Прокси** | ✅ | HTTP, HTTPS, SOCKS4, SOCKS4a, SOCKS5, SOCKS5h. Pre-proxy (цепочка SOCKS → HTTP), аутентификация (`Basic`, `NTLM`, `Negotiate`, `Bearer`, `AWS SigV4`), обход по списку `NoProxy`, отдельные TLS-настройки для HTTPS-прокси, клиентские сертификаты для прокси. |
 | **Credentials (сервер)** | ✅ | `Credentials` (Basic) и `UseDefaultCredentials` (Negotiate / SPNEGO / Kerberos через SSPI) проброшены в `libcurl`. |
 | **Client Certificates (mTLS к серверу)** | ✅ | `SslOptions.ClientCertificates` — экспорт `X509Certificate2` в PKCS#12, передача через `CURLOPT_SSLCERT_BLOB` + `CURLOPT_SSLCERTTYPE = "P12"`. |
-| **Стриминг ответа** | ⚠️ | `HttpCompletionOption.ResponseHeadersRead` пока читает тело целиком в память. Настоящий async-стриминг через `curl_multi_*` в планах. |
+| **Стриминг ответа** | ✅ | `HttpCompletionOption.ResponseHeadersRead` Настоящий async-стриминг через `curl_multi_*` |
 | **CancelPendingRequests** | ⚠️ | `no-op`. Отмена конкретного запроса работает корректно только через `CancellationToken`. |
 | **ServerCertificateCustomValidationCallback** | ⚠️ | Сохраняется для совместимости API, но пока не подключён к валидации `libcurl`. |
 
