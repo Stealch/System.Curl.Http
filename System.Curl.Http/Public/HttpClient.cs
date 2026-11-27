@@ -133,6 +133,10 @@ namespace System.Curl.Http
             // Применяем заголовки по умолчанию, если они не заданы в запросе.
             ApplyDefaultRequestHeaders(request);
 
+            // Прокидываем режим завершения в транспорт (CurlHttpMessageHandler).
+            var completionKey = new HttpRequestOptionsKey<HttpCompletionOption>("System.Curl.Http.CompletionOption");
+            request.Options.Set(completionKey, completionOption);
+
             // Настраиваем таймаут через CancellationTokenSource.
             using var timeoutCts = CreateTimeoutTokenSource(cancellationToken);
             var linkedToken = timeoutCts?.Token ?? cancellationToken;

@@ -202,39 +202,46 @@ namespace System.Curl.Http.Curl
                 throw new ArgumentNullException(nameof(request));
             }
 
+            // Решение о режиме принимает HttpClient через HttpCompletionOption,
+            // транспорт читает его из Options запроса.
+            var completionOption = GetCompletionOption(request);
+
+            if (completionOption == HttpCompletionOption.ResponseHeadersRead)
+            {
+                return await SendStreamingAsync(request, cancellationToken).ConfigureAwait(false);
+            }
+
+            return await SendBufferedAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Буферизующий путь (ResponseContentRead): тело целиком в памяти.
+        /// </summary>
+        private async Task<HttpResponseMessage> SendBufferedAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
             using var session = new CurlEasySession();
             using var parser = new HttpResponseParser();
 
             try
             {
-                // 1. Маппинг запроса в сессию.
                 await HttpRequestMapper.MapAsync(request, session, cancellationToken).ConfigureAwait(false);
-
-                // 2. Применение конфигурации транспорта.
                 ApplyTransportOptions(session, request.RequestUri);
-
-                // 3. Установка CA bundle из ресурсов.
                 ApplyCaBundle(session);
 
-                // 4. Установка callback'ов ответа.
                 session.SetWriteCallback(parser.WriteCallback, parser.WriteUserData);
                 session.SetHeaderCallback(parser.HeaderCallback, parser.HeaderUserData);
 
-                // 5. Выполнение запроса.
                 cancellationToken.ThrowIfCancellationRequested();
                 session.Perform();
 
-                // 6. Чтение статус-кода.
                 var statusCode = session.GetResponseCode();
-
-                // 7. Финализация парсера.
                 var parsed = parser.Complete();
-
-                // 8. Сборка HttpResponseMessage.
-                var response = BuildResponse(request, session, parsed, statusCode);
+                var response = BuildResponse(request, parsed, statusCode);
 
                 Logger.Trace(Category,
-                    $"Ответ получен: {statusCode} {parsed.ReasonPhrase}, " +
+                    $"Ответ получен (buffered): {statusCode} {parsed.ReasonPhrase}, " +
                     $"тело {parsed.Body.Length} байт.");
 
                 return response;
@@ -247,6 +254,171 @@ namespace System.Curl.Http.Curl
                     ex,
                     null);
             }
+        }
+
+        /// <summary>
+        /// Стриминговый путь (ResponseHeadersRead): возвращает ответ после
+        /// заголовков, тело читается потоком по мере поступления через multi.
+        /// </summary>
+        private async Task<HttpResponseMessage> SendStreamingAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            var session = new CurlEasySession();
+            var stream = new CurlResponseStream();
+            var parser = new HttpResponseParser(stream);
+            var multi = new CurlMultiSession();
+
+            try
+            {
+                await HttpRequestMapper.MapAsync(request, session, cancellationToken).ConfigureAwait(false);
+                ApplyTransportOptions(session, request.RequestUri);
+                ApplyCaBundle(session);
+
+                session.SetWriteCallback(parser.WriteCallback, parser.WriteUserData);
+                session.SetHeaderCallback(parser.HeaderCallback, parser.HeaderUserData);
+
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // Запускаем multi-цикл в фоне: он будет качать тело,
+                // пока мы возвращаем ответ после заголовков.
+                var performTask = Task.Run(
+                    () => multi.PerformAsync(session.Handle, cancellationToken),
+                    cancellationToken);
+
+                // Ждём заголовки (или завершение/ошибку).
+                var completed = await Task.WhenAny(parser.HeadersReady, performTask).ConfigureAwait(false);
+
+                if (completed == performTask)
+                {
+                    // Передача завершилась до заголовков.
+                    var code = await performTask.ConfigureAwait(false);
+                    if (code != CURLcode.CURLE_OK)
+                    {
+                        throw BuildCurlException("StreamingPerform", code);
+                    }
+
+                    // Заголовков не было (например, пустой ответ) — завершаем.
+                    var parsedEmpty = parser.Complete();
+                    var responseEmpty = BuildResponse(request, parsedEmpty, parsedEmpty.StatusCode);
+                    CleanupStreaming(session, parser, multi);
+                    return responseEmpty;
+                }
+
+                // Заголовки готовы — строим ответ с потоком.
+                var statusCode = parser.Response.StatusCode;
+                var content = new StreamingHttpContent(stream);
+
+                // Фоновая задача продолжает качать тело; при завершении —
+                // сигналим поток (EOF или ошибка) и освобождаем ресурсы.
+                _ = performTask.ContinueWith(t =>
+                {
+                    try
+                    {
+                        if (t.IsFaulted)
+                        {
+                            var ex = t.Exception?.GetBaseException() ?? new HttpRequestException("Ошибка стриминга.");
+                            stream.SetException(ex);
+                        }
+                        else if (t.IsCanceled)
+                        {
+                            stream.SetException(new TaskCanceledException("Стриминг отменён."));
+                        }
+                        else
+                        {
+                            var code = t.Result;
+                            if (code != CURLcode.CURLE_OK)
+                            {
+                                stream.SetException(BuildCurlException("StreamingPerform", code));
+                            }
+                            else
+                            {
+                                parser.Complete();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        stream.SetException(ex);
+                    }
+                    finally
+                    {
+                        CleanupStreaming(session, parser, multi);
+                    }
+                }, TaskScheduler.Default);
+
+                var response = BuildResponseWithContent(request, parser.Response, statusCode, content);
+
+                Logger.Trace(Category,
+                    $"Ответ получен (streaming): {statusCode} {parser.Response.ReasonPhrase}.");
+
+                return response;
+            }
+            catch (CurlException ex)
+            {
+                CleanupStreaming(session, parser, multi);
+                Logger.Error(Category, "Ошибка libcurl при выполнении запроса (streaming).", ex);
+                throw new HttpRequestException(
+                    $"Ошибка HTTP-запроса: {ex.Message}",
+                    ex,
+                    null);
+            }
+            catch
+            {
+                CleanupStreaming(session, parser, multi);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Освобождает ресурсы стримингового пути. Вызывается ровно один раз.
+        /// </summary>
+        private static void CleanupStreaming(
+            CurlEasySession session,
+            HttpResponseParser parser,
+            CurlMultiSession multi)
+        {
+            try
+            {
+                multi.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(Category, "Ошибка при освобождении multi-сессии.", ex);
+            }
+
+            try
+            {
+                parser.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(Category, "Ошибка при освобождении парсера.", ex);
+            }
+
+            try
+            {
+                session.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(Category, "Ошибка при освобождении easy-сессии.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Извлекает <see cref="HttpCompletionOption"/> из запроса. Значение
+        /// устанавливается <see cref="HttpClient"/> через <see cref="HttpRequestOptions"/>.
+        /// </summary>
+        private static HttpCompletionOption GetCompletionOption(HttpRequestMessage request)
+        {
+            var key = new HttpRequestOptionsKey<HttpCompletionOption>("System.Curl.Http.CompletionOption");
+            if (request.Options.TryGetValue(key, out var option))
+            {
+                return option;
+            }
+
+            return HttpCompletionOption.ResponseContentRead;
         }
 
         // ================================================================
@@ -280,13 +452,11 @@ namespace System.Curl.Http.Curl
                 return;
             }
 
-            // 1. Pre-proxy (цепочка SOCKS → HTTP).
             if (!string.IsNullOrEmpty(PreProxy))
             {
                 session.SetPreProxy(PreProxy!);
             }
 
-            // 2. Адрес прокси.
             var proxyUrl = ResolveProxyUrl(requestUri);
             if (string.IsNullOrEmpty(proxyUrl))
             {
@@ -295,31 +465,24 @@ namespace System.Curl.Http.Curl
 
             session.SetProxy(proxyUrl!);
 
-            // 3. Тип прокси.
             if (ProxyType.HasValue)
             {
                 session.SetProxyType(ProxyType.Value);
             }
 
-            // 4. Порт (если задан отдельно).
             if (ProxyPort.HasValue)
             {
                 session.SetProxyPort(ProxyPort.Value);
             }
 
-            // 5. CONNECT-туннель для HTTPS через HTTP-прокси.
             session.SetHttpProxyTunnel(true);
 
-            // 6. Список хостов, обходящих прокси.
             if (!string.IsNullOrEmpty(NoProxyList))
             {
                 session.SetNoProxy(NoProxyList!);
             }
 
-            // 7. Учётные данные.
             ApplyProxyCredentials(session, requestUri);
-
-            // 8. TLS-настройки HTTPS-прокси.
             ApplyProxyTlsOptions(session);
 
             Logger.Trace(Category, $"Прокси применён: {proxyUrl}");
@@ -462,7 +625,6 @@ namespace System.Curl.Http.Curl
                 return;
             }
 
-            // Берём первый сертификат с приватным ключом.
             X509Certificate2? cert = null;
             foreach (var c in certificates)
             {
@@ -479,10 +641,8 @@ namespace System.Curl.Http.Curl
                 return;
             }
 
-            // Экспорт в PKCS#12 без пароля.
             var pfx = cert.Export(X509ContentType.Pkcs12);
 
-            // Создаём blob в неуправляемой памяти.
             _clientCertBlobHandle = GCHandle.Alloc(pfx, GCHandleType.Pinned);
             var blob = new curl_blob
             {
@@ -541,15 +701,39 @@ namespace System.Curl.Http.Curl
 
         private static HttpResponseMessage BuildResponse(
             HttpRequestMessage request,
-            CurlEasySession session,
             ParsedHttpResponse parsed,
             long statusCode)
+        {
+            var response = BuildResponseWithContent(request, parsed, statusCode, null);
+
+            if (parsed.Body.Length > 0)
+            {
+                var content = new ByteArrayContent(parsed.Body);
+                MoveContentHeaders(response.Headers, content.Headers);
+
+                if (content.Headers.ContentType == null)
+                {
+                    content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                }
+
+                response.Content = content;
+            }
+
+            return response;
+        }
+
+        private static HttpResponseMessage BuildResponseWithContent(
+            HttpRequestMessage request,
+            ParsedHttpResponse parsed,
+            long statusCode,
+            HttpContent? content)
         {
             var response = new HttpResponseMessage((HttpStatusCode)statusCode)
             {
                 ReasonPhrase = parsed.ReasonPhrase,
                 RequestMessage = request,
                 Version = ParseHttpVersion(parsed.HttpVersion),
+                Content = content,
             };
 
             foreach (var header in parsed.Headers)
@@ -560,18 +744,9 @@ namespace System.Curl.Http.Curl
                 }
             }
 
-            if (parsed.Body.Length > 0)
+            if (content != null)
             {
-                var content = new ByteArrayContent(parsed.Body);
-
                 MoveContentHeaders(response.Headers, content.Headers);
-
-                if (content.Headers.ContentType == null)
-                {
-                    content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                }
-
-                response.Content = content;
             }
 
             return response;
@@ -629,11 +804,18 @@ namespace System.Curl.Http.Curl
             }
         }
 
+        /// <summary>
+        /// Строит <see cref="CurlException"/> по коду libcurl.
+        /// </summary>
+        private static CurlException BuildCurlException(string operation, CURLcode code)
+        {
+            return new CurlException(operation, code, $"libcurl error: {code} ({(int)code})");
+        }
+
         // ================================================================
         //  Освобождение
         // ================================================================
 
-        /// <inheritdoc />
         /// <inheritdoc />
         protected override void Dispose(bool disposing)
         {

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using System.Curl.Http.Internal;
 using System.Curl.Http.Interop;
 
@@ -27,7 +28,7 @@ namespace System.Curl.Http.Curl
             new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// Тело ответа.
+        /// Тело ответа. В стриминговом режиме остаётся пустым.
         /// </summary>
         public byte[] Body { get; set; } = Array.Empty<byte>();
 
@@ -63,13 +64,21 @@ namespace System.Curl.Http.Curl
     /// <c>100 Continue</c> и подобные промежуточные ответы (1xx) отбрасываются
     /// с сохранением последнего финального ответа.
     /// </para>
+    /// <para>
+    /// <b>Режимы.</b> Буферизующий (по умолчанию) — тело копится в памяти.
+    /// Стриминговый — тело пишется в <see cref="CurlResponseStream"/> по мере
+    /// поступления, без буферизации.
+    /// </para>
     /// </remarks>
     internal sealed class HttpResponseParser : IDisposable
     {
         private const string Category = "HttpResponseParser";
 
-        private readonly MemoryStream _bodyStream = new MemoryStream();
+        private readonly MemoryStream? _bodyStream;
+        private readonly CurlResponseStream? _responseStream;
         private readonly StringBuilder _headerLine = new StringBuilder(256);
+        private readonly TaskCompletionSource<bool> _headersReady =
+            new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private GCHandleScope _writeCallbackHandle;
         private GCHandleScope _headerCallbackHandle;
@@ -78,8 +87,28 @@ namespace System.Curl.Http.Curl
         private bool _headersComplete;
         private bool _disposed;
 
+        /// <summary>
+        /// Создаёт буферизующий парсер (тело копится в памяти).
+        /// </summary>
         public HttpResponseParser()
         {
+            _bodyStream = new MemoryStream();
+            WriteCallback = OnWriteData;
+            HeaderCallback = OnHeaderData;
+
+            _writeCallbackHandle = GCHandleScope.Alloc(WriteCallback);
+            _headerCallbackHandle = GCHandleScope.Alloc(HeaderCallback);
+            _selfHandle = GCHandleScope.Alloc(this);
+        }
+
+        /// <summary>
+        /// Создаёт стриминговый парсер: тело пишется в <paramref name="stream"/>
+        /// по мере поступления, без буферизации в памяти.
+        /// </summary>
+        /// <param name="stream">Поток для тела ответа.</param>
+        public HttpResponseParser(CurlResponseStream stream)
+        {
+            _responseStream = stream ?? throw new ArgumentNullException(nameof(stream));
             WriteCallback = OnWriteData;
             HeaderCallback = OnHeaderData;
 
@@ -114,14 +143,28 @@ namespace System.Curl.Http.Curl
         public Delegates.curl_header_callback HeaderCallback { get; }
 
         /// <summary>
-        /// Финализирует парсинг: определяет кодировку тела по <c>Content-Type</c>
-        /// и сохраняет накопленное тело.
+        /// Завершается, когда блок заголовков получен (для стримингового режима).
+        /// </summary>
+        public Task HeadersReady => _headersReady.Task;
+
+        /// <summary>
+        /// Финализирует парсинг. Для буферизующего режима — сохраняет тело
+        /// и определяет кодировку. Для стримингового — сигнализирует завершение
+        /// потока (EOF).
         /// </summary>
         public ParsedHttpResponse Complete()
         {
             ThrowIfDisposed();
 
-            Response.Body = _bodyStream.ToArray();
+            if (_responseStream != null)
+            {
+                _responseStream.Complete();
+                Logger.Trace(Category,
+                    $"Стриминг завершён: status={Response.StatusCode}, headers={Response.Headers.Count}.");
+                return Response;
+            }
+
+            Response.Body = _bodyStream!.ToArray();
             Response.BodyEncoding = DetectEncoding(Response.Headers);
 
             Logger.Trace(Category,
@@ -148,7 +191,15 @@ namespace System.Curl.Http.Curl
             {
                 var chunk = new byte[total];
                 System.Runtime.InteropServices.Marshal.Copy(buffer, chunk, 0, total);
-                _bodyStream.Write(chunk, 0, total);
+
+                if (_responseStream != null)
+                {
+                    _responseStream.Write(chunk, total);
+                }
+                else
+                {
+                    _bodyStream!.Write(chunk, 0, total);
+                }
 
                 return new UIntPtr((ulong)total);
             }
@@ -246,6 +297,9 @@ namespace System.Curl.Http.Curl
 
                 _headersComplete = true;
                 Logger.Trace(Category, $"Заголовки получены: status={Response.StatusCode}, count={Response.Headers.Count}.");
+
+                // Сигналим ожидающим (SendAsync в стриминговом режиме).
+                _headersReady.TrySetResult(true);
                 return;
             }
 
@@ -410,7 +464,7 @@ namespace System.Curl.Http.Curl
             _selfHandle.Dispose();
             _headerCallbackHandle.Dispose();
             _writeCallbackHandle.Dispose();
-            _bodyStream.Dispose();
+            _bodyStream?.Dispose();
         }
     }
 }
